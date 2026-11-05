@@ -96,7 +96,7 @@ export default async function CompanyPage({ params }: Props) {
           </p>
         ) : null}
         {c.data_source === 'imported' ? (
-          <p className="max-w-3xl rounded-md bg-slate-100 p-3 text-sm text-slate-700">
+          <p className="max-w-3xl border-2 border-ink bg-white p-3 text-sm text-slate-700">
             This employer comes from public records. Nobody has checked yet whether it takes T Level students, so ask
             before you count on it.
           </p>

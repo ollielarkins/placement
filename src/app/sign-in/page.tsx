@@ -43,7 +43,7 @@ export default async function SignInPage({ searchParams }: Props) {
         </p>
       </header>
       {p.error && ERRORS[p.error] ? (
-        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{ERRORS[p.error]}</p>
+        <p role="alert" className="border-2 border-red-700 bg-white p-3 text-sm font-medium text-red-800">{ERRORS[p.error]}</p>
       ) : null}
 
       <form action={sendMagicLink} className="grid gap-2">

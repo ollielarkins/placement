@@ -45,15 +45,15 @@ export default async function DraftPage({ params, searchParams }: Props) {
         </p>
       </header>
 
-      {p.saved ? <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">Saved.</p> : null}
+      {p.saved ? <p role="status" className="border-2 border-ink bg-volt p-3 text-sm font-medium">Saved.</p> : null}
       {p.sent ? (
-        <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">
+        <p role="status" className="border-2 border-ink bg-volt p-3 text-sm font-medium">
           Marked as sent. {name} is now under Contacted on your <Link href="/account/shortlist" className="underline">shortlist</Link>.
           Set a follow-up date there for about a week’s time.
         </p>
       ) : null}
       {placeholders.length ? (
-        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-950">
+        <p className="border-2 border-dashed border-ink bg-white p-3 text-sm">
           Fill in before sending: {placeholders.join(', ')}
         </p>
       ) : null}

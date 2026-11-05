@@ -26,7 +26,7 @@ export default async function MapPage({ searchParams }: Props) {
       {token ? (
         <MapView token={token} routes={ref.routes.map(({ id, name }) => ({ id, name }))} origin={origin} radiusKm={s.km} />
       ) : (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-slate-600">
+        <p className="border-2 border-dashed border-ink bg-white p-6 text-slate-600">
           The map needs a Mapbox token (NEXT_PUBLIC_MAPBOX_TOKEN). Search still works without it.
         </p>
       )}

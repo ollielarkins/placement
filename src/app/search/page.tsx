@@ -62,7 +62,7 @@ export default async function SearchPage({ searchParams }: Props) {
             <p className="text-sm text-slate-600">Add your postcode to rank employers by distance as well.</p>
           ) : null}
           {rows.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-slate-600">
+            <p className="border-2 border-dashed border-ink bg-white p-6 text-slate-600">
               No employers match. Try a bigger travel distance, fewer filters, or tick &quot;show employers further
               away&quot;.
             </p>

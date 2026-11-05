@@ -44,10 +44,10 @@ export default async function NewDraftPage({ searchParams }: Props) {
         </p>
       </header>
       {p.error ? (
-        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{ERRORS[p.error] ?? ERRORS.model}</p>
+        <p role="alert" className="border-2 border-red-700 bg-white p-3 text-sm font-medium text-red-800">{ERRORS[p.error] ?? ERRORS.model}</p>
       ) : null}
       {!profile?.route_id ? (
-        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-950">
+        <p className="border-2 border-dashed border-ink bg-white p-3 text-sm">
           Your profile is empty, so the draft will be mostly [gaps].{' '}
           <Link href="/account/profile" className="underline">Add your T Level and skills</Link> for a better draft.
         </p>

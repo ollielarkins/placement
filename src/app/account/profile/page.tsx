@@ -51,7 +51,7 @@ export default async function ProfilePage({ searchParams }: Props) {
         </p>
       </header>
       {p.error && ERRORS[p.error] ? (
-        <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">{ERRORS[p.error]}</p>
+        <p role="alert" className="border-2 border-red-700 bg-white p-3 text-sm font-medium text-red-800">{ERRORS[p.error]}</p>
       ) : null}
 
       <form action={saveProfile} className="grid gap-6">
@@ -150,8 +150,8 @@ export default async function ProfilePage({ searchParams }: Props) {
 
 function Fieldset({ legend, children }: { legend: string; children: React.ReactNode }) {
   return (
-    <fieldset className="grid gap-3 border-2 border-ink bg-white p-4">
-      <legend className="px-1 font-semibold">{legend}</legend>
+    <fieldset className="grid gap-3 border-2 border-ink bg-white p-4 shadow-hard-sm">
+      <legend className="display bg-ink px-2 py-1 text-sm text-volt">{legend}</legend>
       {children}
     </fieldset>
   );

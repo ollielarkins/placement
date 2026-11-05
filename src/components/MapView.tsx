@@ -47,7 +47,7 @@ export function MapView({
       m.addLayer({
         id: 'clusters', type: 'circle', source: 'sites', filter: ['has', 'count'],
         paint: {
-          'circle-color': '#0f766e', 'circle-opacity': 0.75,
+          'circle-color': '#111111', 'circle-opacity': 0.75,
           'circle-radius': ['interpolate', ['linear'], ['get', 'count'], 1, 8, 100, 16, 2000, 30],
           'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5,
         },
@@ -55,21 +55,22 @@ export function MapView({
       m.addLayer({
         id: 'cluster-count', type: 'symbol', source: 'sites', filter: ['has', 'count'],
         layout: { 'text-field': ['to-string', ['get', 'count']], 'text-size': 11 },
-        paint: { 'text-color': '#fff' },
+        paint: { 'text-color': '#d8ff3d' },
       });
       // Individual sites (zoomed in): verified in green, imported grey.
       m.addLayer({
         id: 'sites', type: 'circle', source: 'sites', filter: ['has', 'company_id'],
         paint: {
-          'circle-color': ['match', ['get', 'data_source'], 'verified', '#047857', 'student_submitted', '#b45309', '#64748b'],
+          'circle-color': ['match', ['get', 'data_source'], 'verified', '#d8ff3d', 'student_submitted', '#2f45ff', '#6a655b'],
+          'circle-stroke-color': '#111111',
           'circle-radius': ['match', ['get', 'data_source'], 'verified', 7, 5],
-          'circle-stroke-color': '#fff', 'circle-stroke-width': 1,
+          'circle-stroke-width': 1.5,
         },
       });
 
       if (origin) {
         m.addSource('radius', { type: 'geojson', data: circle(origin.lng, origin.lat, radiusKm) });
-        m.addLayer({ id: 'radius', type: 'line', source: 'radius', paint: { 'line-color': '#0f766e', 'line-width': 2, 'line-dasharray': [2, 2] } });
+        m.addLayer({ id: 'radius', type: 'line', source: 'radius', paint: { 'line-color': '#111111', 'line-width': 2, 'line-dasharray': [2, 2] } });
       }
 
       m.on('click', 'clusters', (e) => {
@@ -155,7 +156,7 @@ export function MapView({
         <Toggle label="Has taken T Level students" on={filters.taken} set={(v) => setFilters({ ...filters, taken: v })} />
         <Toggle label="Live apprenticeship adverts" on={filters.live} set={(v) => setFilters({ ...filters, live: v })} />
       </div>
-      <div ref={box} className="h-[70vh] min-h-[420px] w-full overflow-hidden rounded-xl border border-slate-200" />
+      <div ref={box} className="h-[70vh] min-h-[420px] w-full overflow-hidden border-2 border-ink shadow-hard" />
       <p className="text-sm text-slate-600" aria-live="polite">{status}</p>
     </div>
   );

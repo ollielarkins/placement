@@ -34,7 +34,7 @@ export default async function AccountPage({ searchParams }: Props) {
         <p className="text-sm text-slate-600">Signed in as {user.email} (by {via}).</p>
       </header>
 
-      {p.saved ? <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">Profile saved.</p> : null}
+      {p.saved ? <p role="status" className="border-2 border-ink bg-volt p-3 text-sm font-medium">Profile saved.</p> : null}
 
       <section className="grid gap-3 border-2 border-ink bg-white p-4">
         <h2 className="font-semibold">Your profile</h2>
@@ -81,7 +81,7 @@ export default async function AccountPage({ searchParams }: Props) {
           This removes your account, profile, shortlist and drafts straight away. It can’t be undone.
         </p>
         {p.error ? (
-          <p role="alert" className="mb-3 rounded-md bg-red-50 p-3 text-sm text-red-800">
+          <p role="alert" className="mb-3 border-2 border-red-700 bg-white p-3 text-sm font-medium text-red-800">
             {p.error === 'confirm' ? 'Type delete in the box to confirm.' : 'We couldn’t delete it just now. Try again.'}
           </p>
         ) : null}

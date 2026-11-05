@@ -35,12 +35,12 @@ export default async function ShortlistPage({ searchParams }: Props) {
         </p>
       </header>
 
-      {p.saved ? <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">Saved.</p> : null}
-      {p.removed ? <p role="status" className="rounded-md bg-slate-100 p-3 text-sm">Removed from your shortlist.</p> : null}
-      {p.error ? <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-800">That didn’t save. Check the dates and try again.</p> : null}
+      {p.saved ? <p role="status" className="border-2 border-ink bg-volt p-3 text-sm font-medium">Saved.</p> : null}
+      {p.removed ? <p role="status" className="border-2 border-ink bg-white p-3 text-sm">Removed from your shortlist.</p> : null}
+      {p.error ? <p role="alert" className="border-2 border-red-700 bg-white p-3 text-sm font-medium text-red-800">That didn’t save. Check the dates and try again.</p> : null}
 
       {overdue.length ? (
-        <section className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+        <section className="border-2 border-ink bg-volt p-4 text-sm">
           <h2 className="font-semibold">Follow up today</h2>
           <ul className="mt-1 list-disc pl-5">
             {overdue.map((t) => (
@@ -54,7 +54,7 @@ export default async function ShortlistPage({ searchParams }: Props) {
       ) : null}
 
       {items.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-slate-700">
+        <p className="border-2 border-dashed border-ink bg-white p-6 text-slate-700">
           Nothing saved yet. Use <strong>Save to shortlist</strong> on any company in{' '}
           <Link href="/search" className="text-brand-700 underline">search</Link>.
         </p>
@@ -63,9 +63,9 @@ export default async function ShortlistPage({ searchParams }: Props) {
           {/* Board: one column per stage on wide screens, stacked on phones. */}
           <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
             {OPEN_STAGES.map((s) => (
-              <section key={s.id} aria-labelledby={`h-${s.id}`} className="grid content-start gap-2 rounded-xl bg-slate-100 p-2">
-                <h2 id={`h-${s.id}`} className="px-1 text-sm font-semibold">
-                  {s.label} <span className="font-normal text-slate-500">({byStage(s.id).length})</span>
+              <section key={s.id} aria-labelledby={`h-${s.id}`} className="grid content-start gap-2 border-2 border-ink bg-slate-100 p-2">
+                <h2 id={`h-${s.id}`} className="flex items-center justify-between px-1 text-sm font-bold uppercase tracking-wide">
+                  {s.label} <span className="bg-ink px-1.5 font-mono text-volt">{byStage(s.id).length}</span>
                 </h2>
                 <p className="px-1 text-xs text-slate-500">{s.hint}</p>
                 {byStage(s.id).map((t) => <Card key={t.id} t={t} />)}
@@ -88,13 +88,13 @@ function Card({ t }: { t: TrackerItem }) {
   const name = displayName(t.companies?.name ?? 'Company');
   const due = isOverdue(t);
   return (
-    <article id={`t-${t.id}`} className={`grid gap-2 rounded-lg border bg-white p-3 text-sm ${due ? 'border-amber-400' : 'border-slate-200'}`}>
+    <article id={`t-${t.id}`} className={`grid gap-2 border-2 border-ink bg-white p-3 text-sm ${due ? 'shadow-[4px_4px_0_0_var(--color-volt)]' : ''}`}>
       <h3 className="font-medium">
         <Link href={`/companies/${t.company_id}`} className="hover:underline">{name}</Link>
       </h3>
       <p className="text-xs text-slate-500">
         {STAGE_LABEL[t.stage]} since {ukDate(t.stage_changed_at)}
-        {t.follow_up_on ? <> · <span className={due ? 'font-semibold text-amber-800' : ''}>follow up {ukDate(t.follow_up_on)}</span></> : null}
+        {t.follow_up_on ? <> · <span className={due ? 'bg-volt px-1 font-bold text-ink' : ''}>follow up {ukDate(t.follow_up_on)}</span></> : null}
       </p>
       <p className="flex gap-3 text-xs">
         <Link href={`/account/drafts/new?company=${t.company_id}&purpose=${t.stage === 'contacted' ? 'follow_up' : 'placement'}`}

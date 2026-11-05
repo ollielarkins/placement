@@ -28,7 +28,7 @@ export default async function DraftsPage({ searchParams }: Props) {
         <h1 className="display text-3xl sm:text-4xl">Your drafts</h1>
         <p className="text-sm text-slate-600">Start a new one from any company on your <Link href="/account/shortlist" className="underline">shortlist</Link>.</p>
       </header>
-      {p.deleted ? <p role="status" className="rounded-md bg-slate-100 p-3 text-sm">Draft deleted.</p> : null}
+      {p.deleted ? <p role="status" className="border-2 border-ink bg-white p-3 text-sm">Draft deleted.</p> : null}
       {drafts.length ? (
         <ul className="grid gap-2">
           {drafts.map((d) => (
@@ -43,7 +43,7 @@ export default async function DraftsPage({ searchParams }: Props) {
           ))}
         </ul>
       ) : (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-slate-700">No drafts yet.</p>
+        <p className="border-2 border-dashed border-ink bg-white p-6 text-slate-700">No drafts yet.</p>
       )}
     </div>
   );
