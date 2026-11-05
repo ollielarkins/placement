@@ -31,7 +31,9 @@ const SIC_FILE = 'data/sic-codes.csv';
 // ---------------------------------------------------------------------------
 // SIC filter
 // ---------------------------------------------------------------------------
-type MinAccounts = 'any' | 'small';
+// 'medium' is for engineering-adjacent sectors (data/sic-codes.csv, second
+// block): only firms big enough to have their own engineering team.
+type MinAccounts = 'any' | 'small' | 'medium';
 interface SicRule {
   prefix: string;
   title: string;
@@ -45,7 +47,7 @@ export function loadSicRules(path = SIC_FILE): SicRule[] {
   return lines
     .map((l) => {
       const [prefix, title, sector, min] = l.split(',').map((s) => s.trim());
-      if (!prefix || !/^\d{2,5}$/.test(prefix) || !title || !sector || (min !== 'any' && min !== 'small')) {
+      if (!prefix || !/^\d{2,5}$/.test(prefix) || !title || !sector || !['any', 'small', 'medium'].includes(min ?? '')) {
         throw new Error(`${path}: bad line "${l}"`);
       }
       return { prefix, title, sector, minAccounts: min as MinAccounts };
@@ -63,7 +65,7 @@ export function ruleFor(sic: string, rules: SicRule[]): SicRule | undefined {
 // FULL and GROUP mean "not small": medium or large. We record medium rather
 // than overclaim; curation sets 'large' for companies that really are.
 // ---------------------------------------------------------------------------
-export const ACCOUNTS: Record<string, { band: SizeBand; atLeastSmall: boolean; dormant?: true }> = {
+export const ACCOUNTS: Record<string, { band: SizeBand; atLeastSmall: boolean; atLeastMedium?: true; dormant?: true }> = {
   'DORMANT': { band: 'micro', atLeastSmall: false, dormant: true },
   'MICRO ENTITY': { band: 'micro', atLeastSmall: false },
   'NO ACCOUNTS FILED': { band: 'unknown', atLeastSmall: false },
@@ -73,9 +75,9 @@ export const ACCOUNTS: Record<string, { band: SizeBand; atLeastSmall: boolean; d
   'UNAUDITED ABRIDGED': { band: 'small', atLeastSmall: true },
   'AUDITED ABRIDGED': { band: 'small', atLeastSmall: true },
   'SMALL': { band: 'small', atLeastSmall: true },
-  'MEDIUM': { band: 'medium', atLeastSmall: true },
-  'FULL': { band: 'medium', atLeastSmall: true },
-  'GROUP': { band: 'medium', atLeastSmall: true },
+  'MEDIUM': { band: 'medium', atLeastSmall: true, atLeastMedium: true },
+  'FULL': { band: 'medium', atLeastSmall: true, atLeastMedium: true },
+  'GROUP': { band: 'medium', atLeastSmall: true, atLeastMedium: true },
   'AUDIT EXEMPTION SUBSIDIARY': { band: 'unknown', atLeastSmall: true },
   'FILING EXEMPTION SUBSIDIARY': { band: 'unknown', atLeastSmall: true },
 };
@@ -136,7 +138,10 @@ export function toCandidate(r: Record<string, string>, rules: SicRule[], known: 
   const country = (r['RegAddress.Country'] ?? '').trim().toUpperCase();
 
   // Size rule: a company passes if ANY of its engineering SIC codes allows its accounts regime.
-  const sizeOk = matched.some((s) => ruleFor(s.code, rules)!.minAccounts === 'any' || accounts.atLeastSmall);
+  const sizeOk = matched.some((s) => {
+    const min = ruleFor(s.code, rules)!.minAccounts;
+    return min === 'any' || (min === 'small' && accounts.atLeastSmall) || (min === 'medium' && Boolean(accounts.atLeastMedium));
+  });
   const in_scope =
     matched.length > 0 && status === 'Active' && !accounts.dormant && sizeOk && !NON_ENGLAND.has(country);
 

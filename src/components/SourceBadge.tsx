@@ -19,3 +19,15 @@ export function SourceBadge({ source, verifiedAt }: { source: DataSource; verifi
     </span>
   );
 }
+
+/** Not an engineering company, but has (or may have) an engineering team. */
+export function AdjacentBadge() {
+  return (
+    <span
+      title="Not an engineering company, but works in a sector where engineering teams are common (for example food, utilities, telecoms or transport). Ask what the engineering team does before you apply."
+      className="inline-flex items-center border border-dashed border-ink px-1.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wide"
+    >
+      Engineering-adjacent
+    </span>
+  );
+}

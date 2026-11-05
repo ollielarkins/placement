@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { RankedCompany } from '@/types/domain';
 import { displayName, miles } from '@/lib/format';
 import { SaveButton } from './SaveButton';
-import { SourceBadge } from './SourceBadge';
+import { AdjacentBadge, SourceBadge } from './SourceBadge';
 
 export function ResultCard({ r, hasOrigin, colleges = [] }: { r: RankedCompany; hasOrigin: boolean; colleges?: string[] }) {
   const dist = hasOrigin ? miles(r.distance_km) : null;
@@ -23,6 +23,7 @@ export function ResultCard({ r, hasOrigin, colleges = [] }: { r: RankedCompany; 
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
             <SourceBadge source={r.data_source} verifiedAt={r.verified_at} />
+            {r.engineering_tier === 'adjacent' ? <AdjacentBadge /> : null}
             {dist ? <span>{dist} away</span> : null}
             {r.live_vacancies > 0 ? (
               <span>

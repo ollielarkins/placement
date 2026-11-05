@@ -102,6 +102,7 @@ function Filters({ s, sectors, bare = false }: { s: SearchState; sectors: string
         <legend className="mb-1 font-medium">Show only</legend>
         <Check name="taken" checked={s.taken} label="Has taken T Level students" />
         <Check name="onward" checked={s.onward} label="Has a route onward (apprenticeship, job)" />
+        <Check name="core" checked={s.core} label="Engineering companies only (hide engineering-adjacent)" />
         <Check name="source" value="verified" checked={s.sources.includes('verified')} label="Checked by a person" />
         <Check name="outside" checked={s.outside} label="Show employers further away" />
       </fieldset>
@@ -142,7 +143,7 @@ function Filters({ s, sectors, bare = false }: { s: SearchState; sectors: string
         <button type="submit" className="border-2 border-ink bg-ink px-4 py-2 font-bold text-volt hover:bg-volt hover:text-ink">
           Apply
         </button>
-        <Link href={searchHref({ ...s, q: null, region: null, sectors: [], sizes: [], taken: false, onward: false, sources: [], outside: false, weights: { route_onward: 30, specialism_fit: 25, practicalities: 25, brand: 20 }, page: 1 })} className="rounded-md px-4 py-2 text-slate-600 hover:underline">
+        <Link href={searchHref({ ...s, q: null, region: null, sectors: [], sizes: [], taken: false, onward: false, sources: [], outside: false, core: false, weights: { route_onward: 30, specialism_fit: 25, practicalities: 25, brand: 20 }, page: 1 })} className="rounded-md px-4 py-2 text-slate-600 hover:underline">
           Clear
         </Link>
       </div>

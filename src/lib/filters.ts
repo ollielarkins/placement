@@ -17,6 +17,7 @@ export interface SearchState {
   onward: boolean;
   sources: DataSource[];
   outside: boolean;
+  core: boolean; // engineering companies only (hide engineering-adjacent)
   weights: RankWeights;
   page: number;
 }
@@ -56,6 +57,7 @@ export function parseSearch(p: Params): SearchState {
     onward: one(p, 'onward') === '1',
     sources: many(p, 'source').filter((s): s is DataSource => (SOURCES as string[]).includes(s)),
     outside: one(p, 'outside') === '1',
+    core: one(p, 'core') === '1',
     weights: {
       route_onward: clampInt(one(p, 'wr'), 0, 100, DEFAULT_WEIGHTS.route_onward),
       specialism_fit: clampInt(one(p, 'ws'), 0, 100, DEFAULT_WEIGHTS.specialism_fit),
@@ -82,6 +84,7 @@ export function searchHref(s: SearchState, over: Partial<SearchState> = {}): str
   if (v.onward) u.set('onward', '1');
   for (const x of v.sources) u.append('source', x);
   if (v.outside) u.set('outside', '1');
+  if (v.core) u.set('core', '1');
   const w = v.weights;
   if (w.route_onward !== DEFAULT_WEIGHTS.route_onward) u.set('wr', String(w.route_onward));
   if (w.specialism_fit !== DEFAULT_WEIGHTS.specialism_fit) u.set('ws', String(w.specialism_fit));

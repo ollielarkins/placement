@@ -75,6 +75,7 @@ export function profileSearchHref(p: Profile): string {
     onward: false,
     sources: [],
     outside: false,
+    core: false,
     weights: { ...DEFAULT_WEIGHTS, ...p.weights },
     page: 1,
   };

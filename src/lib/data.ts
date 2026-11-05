@@ -55,6 +55,7 @@ export async function searchCompanies(s: SearchState, origin: OutcodeCentroid | 
     size_bands: s.sizes.length ? s.sizes : undefined,
     has_taken_tlevel: s.taken || undefined,
     has_route_onward: s.onward || undefined,
+    core_only: s.core || undefined,
     data_sources: s.sources.length ? s.sources : undefined,
     include_outside_radius: s.outside || undefined,
     limit: PAGE_SIZE,
@@ -74,7 +75,7 @@ const rankCached = unstable_cache(
     const rows = (data ?? []) as RankedCompany[];
     return { rows, total: rows[0]?.total_count ?? 0 };
   },
-  ['rank_companies', 'v1'],
+  ['rank_companies', 'v2'],
   { revalidate: 600, tags: ['rank'] },
 );
 
@@ -99,6 +100,7 @@ export interface CompanyDetail {
   data_source: DataSource;
   verified_at: string | null;
   sic_codes: string[];
+  engineering_tier: 'core' | 'adjacent';
   updated_at: string;
   sites: {
     id: string;

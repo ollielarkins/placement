@@ -173,6 +173,8 @@ export interface RankedCompany {
   verified_at: string | null;
   /** Total matches before limit/offset, for pagination. */
   total_count: number;
+  /** 'core' engineering company, or 'adjacent': engineering team in another sector (0021). */
+  engineering_tier: 'core' | 'adjacent';
 }
 
 /** Public review as exposed by the reviews_public view (no user_id). */

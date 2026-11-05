@@ -13,3 +13,29 @@ sic_prefix,title,sector,min_accounts
 351,Electric power generation transmission and distribution,energy,small
 7112,Engineering activities and related technical consultancy,engineering_services,small
 7219,Other research and experimental development on natural sciences and engineering,research_and_development,small
+10,Manufacture of food products,food_and_drink,medium
+11,Manufacture of beverages,food_and_drink,medium
+17,Manufacture of paper and paper products,materials,medium
+19,Manufacture of coke and refined petroleum products,chemicals_and_pharma,medium
+20,Manufacture of chemicals and chemical products,chemicals_and_pharma,medium
+21,Manufacture of basic pharmaceutical products and pharmaceutical preparations,chemicals_and_pharma,medium
+22,Manufacture of rubber and plastic products,materials,medium
+23,Manufacture of other non-metallic mineral products,materials,medium
+24,Manufacture of basic metals,metals,medium
+325,Manufacture of medical and dental instruments and supplies,medical_devices,small
+352,Manufacture of gas; distribution of gaseous fuels through mains,utilities,medium
+353,Steam and air conditioning supply,utilities,medium
+36,Water collection treatment and supply,utilities,medium
+37,Sewerage,utilities,medium
+382,Waste treatment and disposal,utilities,medium
+491,Passenger rail transport interurban,rail,medium
+492,Freight rail transport,rail,medium
+511,Passenger air transport,aviation,medium
+5223,Service activities incidental to air transportation,aviation,medium
+61,Telecommunications,telecoms,medium
+6311,Data processing hosting and related activities,data_centres,medium
+7120,Technical testing and analysis,engineering_services,small
+8110,Combined facilities support activities,facilities_management,medium
+861,Hospital activities,healthcare,medium
+9511,Repair of computers and peripheral equipment,maintenance_and_repair,small
+9512,Repair of communication equipment,maintenance_and_repair,small

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { SaveButton } from '@/components/SaveButton';
-import { SourceBadge } from '@/components/SourceBadge';
+import { AdjacentBadge, SourceBadge } from '@/components/SourceBadge';
 import { companyDetail, specialismNames, type CompanyContact, type CompanyDetail } from '@/lib/data';
 
 type CompanySource = CompanyDetail['sources'][number];
@@ -66,6 +66,7 @@ export default async function CompanyPage({ params }: Props) {
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
           <SourceBadge source={c.data_source} verifiedAt={c.verified_at} />
+          {c.engineering_tier === 'adjacent' ? <AdjacentBadge /> : null}
           {c.size_band !== 'unknown' ? <span>{SIZE_LABEL[c.size_band]}</span> : null}
           {c.ch_number ? <span>Company number {c.ch_number}</span> : null}
           {c.website ? (
@@ -86,6 +87,13 @@ export default async function CompanyPage({ params }: Props) {
               </li>
             ))}
           </ul>
+        ) : null}
+        {c.engineering_tier === 'adjacent' ? (
+          <p className="max-w-3xl border-l-4 border-ink bg-white p-3 text-sm">
+            This isn’t an engineering company, but organisations like it often have their own engineering or
+            maintenance teams. Before you apply, ask what work an Engineering T Level student would do there and
+            whether it fits your specialism.
+          </p>
         ) : null}
         {c.data_source === 'imported' ? (
           <p className="max-w-3xl rounded-md bg-slate-100 p-3 text-sm text-slate-700">
