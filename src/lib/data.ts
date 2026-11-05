@@ -1,4 +1,5 @@
 import 'server-only';
+import { unstable_cache } from 'next/cache';
 import type {
   DataSource,
   EnglandRegion,
@@ -59,14 +60,23 @@ export async function searchCompanies(s: SearchState, origin: OutcodeCentroid | 
     limit: PAGE_SIZE,
     offset: (s.page - 1) * PAGE_SIZE,
   };
-  const { data, error } = await publicDb().rpc('rank_companies', {
-    p_profile: JSON.parse(JSON.stringify(profile)),
-    p_filters: JSON.parse(JSON.stringify(filters)),
-  });
-  if (error) throw new Error(`rank_companies: ${error.message}`);
-  const rows = (data ?? []) as RankedCompany[];
-  return { rows, total: rows[0]?.total_count ?? 0 };
+  // Same inputs, same results for everyone: no personal data goes in (only
+  // the outward code's centre point), so results are shared through Vercel's
+  // data cache for 10 minutes. Repeat searches skip the database entirely.
+  return rankCached(JSON.parse(JSON.stringify(profile)), JSON.parse(JSON.stringify(filters)));
 }
+
+const rankCached = unstable_cache(
+  async (profile: Record<string, unknown>, filters: Record<string, unknown>): Promise<SearchResult> => {
+    const { data, error } = await publicDb().rpc('rank_companies', { p_profile: profile, p_filters: filters });
+    // Throwing means errors are never cached; the next request tries again.
+    if (error) throw new Error(`rank_companies: ${error.message}`);
+    const rows = (data ?? []) as RankedCompany[];
+    return { rows, total: rows[0]?.total_count ?? 0 };
+  },
+  ['rank_companies', 'v1'],
+  { revalidate: 600, tags: ['rank'] },
+);
 
 export interface CompanyDetail {
   id: string;
@@ -142,14 +152,27 @@ export interface CollegeLink {
 export async function collegeTags(ids: string[]): Promise<Map<string, string[]>> {
   const out = new Map<string, string[]>();
   if (!ids.length) return out;
-  const { data, error } = await publicDb().rpc('college_tags', { p_company_ids: ids });
-  // Tags are a nice-to-have on the results list: never fail the search for them.
-  if (error) return out;
-  for (const t of (data ?? []) as { company_id: string; label: string }[]) {
+  let data: { company_id: string; label: string }[];
+  try {
+    data = await collegeTagsCached(ids);
+  } catch {
+    return out; // a nice-to-have on the results list: never fail the search for it
+  }
+  for (const t of data) {
     out.set(t.company_id, [...(out.get(t.company_id) ?? []), t.label]);
   }
   return out;
 }
+
+const collegeTagsCached = unstable_cache(
+  async (ids: string[]) => {
+    const { data, error } = await publicDb().rpc('college_tags', { p_company_ids: ids });
+    if (error) throw new Error(`college_tags: ${error.message}`);
+    return (data ?? []) as { company_id: string; label: string }[];
+  },
+  ['college_tags', 'v1'],
+  { revalidate: 600, tags: ['rank'] },
+);
 
 export async function companyDetail(id: string): Promise<CompanyDetail | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;

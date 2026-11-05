@@ -32,6 +32,8 @@ export async function lookupOutcode(outcode: string): Promise<OutcodeCentroid | 
   return cached(`outcode:${outcode}`, 24 * 60 * 60 * 1000, async () => {
     const res = await fetch(`https://api.postcodes.io/outcodes/${encodeURIComponent(outcode)}`, {
       signal: AbortSignal.timeout(5000),
+      // Outcode centres don't change; only the outward code is ever sent.
+      next: { revalidate: 86_400 },
     });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`postcodes.io ${res.status}`);
