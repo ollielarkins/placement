@@ -144,8 +144,12 @@ select throws_ok(
 select lives_ok(
   $$insert into public.profiles (user_id, route_id, specialism, home_outcode, home_location, max_travel_km, placement_pattern)
     values ('00000000-0000-0000-0000-0000000000a1', 'fixture_route', 'fixture_eee', 'MK45',
-            st_setsrid(st_makepoint(-0.5, 52.0), 4326)::geography, 25, 'block')$$,
-  'student creates own profile');
+            st_setsrid(st_makepoint(-0.5, 52.0), 4326)::geography, 25, 'block')
+    -- The sign-up trigger (0017) already made an empty row; fill it in.
+    on conflict (user_id) do update set route_id = excluded.route_id, specialism = excluded.specialism,
+      home_outcode = excluded.home_outcode, home_location = excluded.home_location,
+      max_travel_km = excluded.max_travel_km, placement_pattern = excluded.placement_pattern$$,
+  'student fills in own profile');
 
 select is(
   (select company_id from public.rank_companies_for_me() limit 1),
@@ -182,7 +186,8 @@ select is((select status::text from public.reviews where id = current_setting('f
 -- Student 2 sees none of student 1's data.
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}';
 select is(
-  (select count(*)::int from public.profiles) + (select count(*)::int from public.tracker_items)
+  (select count(*)::int from public.profiles where user_id <> '00000000-0000-0000-0000-0000000000a2')
+    + (select count(*)::int from public.tracker_items)
     + (select count(*)::int from public.reviews),
   0, 'another student sees no profile, tracker or review rows');
 

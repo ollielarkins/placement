@@ -27,6 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/map" className="hover:underline">Map</Link>
               <Link href="/regions" className="hover:underline">Regions</Link>
             </div>
+            {/* One static link keeps every page cacheable: /account sends signed-out visitors to sign in. */}
+            <Link href="/account" className="ml-auto text-sm font-medium text-brand-700 hover:underline">Account</Link>
           </nav>
         </header>
         <main id="main" className="mx-auto max-w-6xl px-4 py-6">
@@ -36,7 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <p>
             Company data: Companies House and Find an apprenticeship (Open Government Licence v3.0), plus curated
             research with a source for every claim. Your postcode is cut to its first half (for example MK45) before
-            anything else happens, and is never stored.
+            anything else happens, and is never stored. <Link href="/privacy" className="underline">Privacy notice</Link>.
           </p>
         </footer>
       </body>
