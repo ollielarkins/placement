@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { requireUser } from '@/lib/auth/session';
+import { requireUser, sessionDb } from '@/lib/auth/session';
+import { specialismNames } from '@/lib/data';
+import { PROFILE_COLUMNS, TRAVEL_KM, profileSearchHref, type Profile } from '@/lib/profile';
 import { deleteAccount } from './actions';
 
 export const metadata: Metadata = { title: 'Your account' };
@@ -13,6 +15,13 @@ export default async function AccountPage({ searchParams }: Props) {
   const { user, ageConfirmed } = await requireUser('/account');
   if (!ageConfirmed) redirect('/welcome?next=/account');
   const via = user.app_metadata?.provider === 'google' ? 'Google' : 'email link';
+  const db = await sessionDb();
+  const [{ data }, specNames] = await Promise.all([
+    db.from('profiles').select(PROFILE_COLUMNS).eq('user_id', user.id).single(),
+    specialismNames(),
+  ]);
+  const pr = data as Profile | null;
+  const complete = Boolean(pr?.home_outcode && pr?.route_id);
 
   return (
     <div className="grid max-w-2xl gap-6">
@@ -21,12 +30,29 @@ export default async function AccountPage({ searchParams }: Props) {
         <p className="text-sm text-slate-600">Signed in as {user.email} (by {via}).</p>
       </header>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 className="mb-2 font-semibold">Coming next</h2>
-        <p className="text-sm text-slate-700">
-          Your profile (T Level, specialism, college, travel) and a shortlist with an application tracker are being
-          built now. Until then, <Link href="/search" className="text-brand-700 underline">search works as before</Link>.
-        </p>
+      {p.saved ? <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">Profile saved.</p> : null}
+
+      <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="font-semibold">Your profile</h2>
+        {pr && complete ? (
+          <dl className="grid gap-1 text-sm">
+            <div><dt className="inline text-slate-600">Specialism: </dt><dd className="inline">{pr.specialism ? specNames.get(pr.specialism) ?? pr.specialism : 'not chosen'}</dd></div>
+            <div><dt className="inline text-slate-600">From: </dt><dd className="inline">{pr.home_outcode}, up to {TRAVEL_KM.find((t) => t.km === Math.round(Number(pr.max_travel_km)))?.label ?? `${pr.max_travel_km} km`}</dd></div>
+          </dl>
+        ) : (
+          <p className="text-sm text-slate-700">Add your T Level and the first half of your postcode, and every search starts from them.</p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          {pr && complete ? (
+            <Link href={profileSearchHref(pr)} className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+              Search with my profile
+            </Link>
+          ) : null}
+          <Link href="/account/profile" className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">
+            {complete ? 'Edit profile' : 'Set up your profile'}
+          </Link>
+        </div>
+        <p className="text-xs text-slate-500">Shortlist and application tracker: coming next.</p>
       </section>
 
       <form action="/auth/sign-out" method="post">
