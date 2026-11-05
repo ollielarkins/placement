@@ -5,7 +5,7 @@
 //   * Obeys robots.txt (our token "TLevelPlacementFinderBot", then "*"),
 //     including Crawl-delay up to 10 s.
 //   * One request at a time per host, at least 1.5 s apart.
-//   * HTML only, 1.5 MB cap, 12 s timeout, at most 5 redirects.
+//   * HTML only, 1.5 MB cap, 8 s timeout, at most 5 redirects.
 //
 // Uses node:http/https with a fresh connection per request instead of fetch.
 // fetch keeps a connection pool per website for the life of the process, and
@@ -18,7 +18,7 @@ import zlib from 'node:zlib';
 
 const TOKEN = 'TLevelPlacementFinderBot';
 const MAX_BYTES = 1_500_000;
-const TIMEOUT_MS = 12_000;
+const TIMEOUT_MS = 8_000; // a site that hasn't answered in 8 s rarely does
 const MIN_GAP_MS = 1_500;
 
 export interface Page {

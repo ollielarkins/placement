@@ -64,9 +64,11 @@ export function candidateHosts(name: string): string[] {
   const hosts: string[] = [];
   for (const s of stems) {
     if (s.length < 3 || s.length > 63) continue;
-    for (const tld of ['co.uk', 'com', 'uk']) hosts.push(`${s}.${tld}`);
+    // .co.uk and .com only: in 725 confirmed guesses, bare .uk matched 6.
+    for (const tld of ['co.uk', 'com']) hosts.push(`${s}.${tld}`);
   }
-  return [...new Set(hosts)].slice(0, 12);
+  // Hits came almost entirely from the first three stems.
+  return [...new Set(hosts)].slice(0, 8);
 }
 
 // ---------------------------------------------------------------------------
@@ -333,4 +335,18 @@ export function dedupe(list: FoundContact[]): FoundContact[] {
   const caps: Record<ContactKind, number> = { website: 1, careers_page: 3, apply_page: 2, contact_page: 1, contact_form: 1, email: 4, phone: 2 };
   const count: Partial<Record<ContactKind, number>> = {};
   return [...seen.values()].filter((c) => (count[c.kind] = (count[c.kind] ?? 0) + 1) <= caps[c.kind]);
+}
+
+/**
+ * Cheap pre-check before hunting through a guessed site's legal pages: does
+ * the page mention the company's most distinctive name word at all? If not,
+ * it's someone else's site (or a parked domain) and we move on.
+ */
+export function mentionsName(html: string, name: string): boolean {
+  const words = nameTokens(name).filter((w) => w.length >= 4 && !/^(engineering|group|systems|solutions|services|technology|technologies|manufacturing|international)$/.test(w));
+  const key = words[0] ?? nameTokens(name)[0];
+  if (!key) return true;
+  const $ = cheerio.load(html);
+  const text = `${$('title').text()} ${$('body').text()}`.toLowerCase();
+  return text.includes(key);
 }

@@ -25,7 +25,8 @@ test('candidate hosts cover joined, hyphenated and short forms', () => {
   const h = candidateHosts('Kampf Machinery UK Limited');
   assert.ok(h.includes('kampfmachinery.co.uk'));
   assert.ok(h.includes('kampf-machinery.com'));
-  assert.ok(h.length <= 12);
+  assert.ok(h.length <= 8);
+  assert.ok(!h.some((x) => x.endsWith('.uk') && !x.endsWith('.co.uk')));
   assert.deepEqual(candidateHosts('Ltd'), []);
 });
 

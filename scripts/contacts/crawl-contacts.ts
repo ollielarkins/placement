@@ -34,6 +34,7 @@ import {
   extractContacts,
   interestingLinks,
   matchIdentity,
+  mentionsName,
   type FoundContact,
   type Match,
 } from './extract.ts';
@@ -92,10 +93,10 @@ async function crawlOne(f: PoliteFetcher, job: Job): Promise<Result> {
       const page = (await f.get(`https://www.${host}/`)) ?? (await f.get(`https://${host}/`));
       if (!page) continue;
       let m = matchIdentity(page.html, id);
-      if (!m) {
+      if (!m && mentionsName(page.html, job.name)) {
         // Company numbers usually sit in the footer, privacy or terms page.
         const links = interestingLinks(page.html, page.url);
-        for (const u of [...links.legalPages, ...links.contactPages].slice(0, 3)) {
+        for (const u of [...links.legalPages, ...links.contactPages].slice(0, 2)) {
           const p = await f.get(u);
           if (p && (m = matchIdentity(p.html, id))) break;
         }
@@ -242,82 +243,131 @@ async function main() {
   let processed = 0;
   let sites = 0;
   let contacts = 0;
+  let taken = 0; // jobs handed out so far (respects --limit)
+  let exhausted = false;
   const started = Date.now();
-  while (!stopping && processed < limit) {
-    const batch = await nextBatch(db, Math.min(200, limit - processed), values.company);
-    if (!batch.length) break;
-    // Mark the batch as taken so a second run doesn't pick it up meanwhile.
-    if (!values['dry-run']) {
-      await db.query(`update import.contact_crawl set next_check_after = now() + interval '2 hours' where company_id = any($1)`, [
-        batch.map((j) => j.company_id),
-      ]);
-    }
-    let i = 0;
-    let lastDone = Date.now();
-    const inFlight = new Map<string, number>(); // company name -> start time
-    // Heartbeat: if a batch is slow, say who is holding it up. If nothing has
-    // finished for 10 minutes, stop so a restart picks up cleanly.
-    const heartbeat = setInterval(() => {
-      const now = Date.now();
-      const slow = [...inFlight.entries()].sort((a, b) => a[1] - b[1]).slice(0, 3)
-        .map(([n, t]) => `${n} (${Math.round((now - t) / 1000)}s)`);
-      console.log(`  ...batch ${i}/${batch.length} started, ${inFlight.size} in progress${slow.length ? `; longest: ${slow.join(', ')}` : ''}`);
-      if (now - lastDone > 10 * 60_000) {
-        console.error('nothing has finished for 10 minutes: stopping. Run the same command again to resume.');
-        process.exit(2);
+  let lastDone = Date.now();
+  let lastReport = 0;
+  const queue: Job[] = [];
+  const inFlight = new Map<string, { name: string; at: number }>();
+
+  // Continuous queue instead of fixed batches: workers never wait for the
+  // slowest company in a batch, which was the main brake on throughput.
+  let refilling: Promise<void> | null = null;
+  let quietUntil = 0; // after an empty fetch, don't ask the database again for 30 s
+  const refill = () =>
+    (refilling ??= (async () => {
+      if (Date.now() < quietUntil) {
+        await new Promise((r) => setTimeout(r, 1000));
+        refilling = null;
+        return;
       }
-    }, 60_000);
-    const worker = async () => {
-      while (!stopping && i < batch.length) {
-        const job = batch[i++]!;
-        inFlight.set(job.name, Date.now());
-        let r: Result;
-        try {
-          // Hard cap per company: one hung connection must not hold up the
-          // whole batch (the next batch only starts when all workers finish).
-          let timer: NodeJS.Timeout | undefined;
-          r = await Promise.race([
-            crawlOne(fetcher, job),
-            new Promise<never>((_, reject) => {
-              timer = setTimeout(() => reject(new Error('company took over 3 minutes')), COMPANY_TIMEOUT_MS);
-            }),
-          ]).finally(() => clearTimeout(timer));
-        } catch (err) {
-          r = { state: 'failed', site: null, matched_on: null, contacts: [], error: String(err).slice(0, 300) };
+      try {
+        const want = Math.min(200, limit - taken - queue.length);
+        if (want <= 0) {
+          exhausted = true;
+          return;
         }
-        processed++;
-        if (r.site) sites++;
-        contacts += Math.max(0, r.contacts.length - 1);
-        if (values['dry-run']) {
-          console.log(`${job.name}: ${r.state}${r.site ? ` ${r.site} (${r.matched_on})` : ''}`);
-          for (const c of r.contacts) console.log(`   ${c.kind}/${c.purpose}: ${c.value}`);
-        } else {
-          try {
-            await save(db, job, r);
-          } catch (err) {
-            // A contact the database refuses (should be rare) fails the company, not the run.
-            console.error(`${job.name}: not saved: ${(err as Error).message}`);
-            await db
-              .query(`update import.contact_crawl set state = 'failed', attempts = attempts + 1, last_error = $2 where company_id = $1`, [
-                job.company_id,
-                (err as Error).message.slice(0, 300),
-              ])
-              .catch(() => undefined); // still held for 2 hours, so it is retried later anyway
-          }
+        const batch = await nextBatch(db, want, values.company);
+        // Skip anything already queued or running (possible near the end of the queue).
+        const fresh = batch.filter((j) => !inFlight.has(j.company_id) && !queue.some((q) => q.company_id === j.company_id));
+        if (!fresh.length) {
+          if (!inFlight.size && !queue.length) exhausted = true;
+          else quietUntil = Date.now() + 30_000;
+          return;
         }
-        inFlight.delete(job.name);
-        lastDone = Date.now();
+        if (!values['dry-run']) {
+          // Hold them for 2 hours so a second run doesn't pick them up meanwhile.
+          await db.query(`update import.contact_crawl set next_check_after = now() + interval '2 hours' where company_id = any($1)`, [
+            fresh.map((j) => j.company_id),
+          ]);
+        }
+        queue.push(...fresh);
+        if (values.company || values['dry-run']) exhausted = true; // one batch only
+      } finally {
+        refilling = null;
       }
-    };
-    await Promise.all(Array.from({ length: Math.min(concurrency, batch.length) }, worker)).finally(() => clearInterval(heartbeat));
+    })());
+
+  const report = (force = false) => {
+    if (!force && processed - lastReport < 200) return;
+    lastReport = processed;
     fetcher.prune();
     const mins = (Date.now() - started) / 60000;
     (globalThis as { gc?: () => void }).gc?.(); // only with --expose-gc (diagnostics)
     const heapMb = Math.round(process.memoryUsage().heapUsed / 1e6);
-    if (process.env.CRAWL_HEAPSNAP) (await import('node:v8')).writeHeapSnapshot(`${process.env.CRAWL_HEAPSNAP}-${processed}.heapsnapshot`);
     console.log(`${processed} companies, ${sites} websites, ${contacts} contacts, ${(processed / Math.max(mins, 0.01)).toFixed(0)}/min, ${heapMb} MB${process.env.CRAWL_DEBUG ? ` (${fetcher.stats()})` : ''}`);
-    if (values.company || values['dry-run']) break;
-  }
+  };
+
+  // Heartbeat: say who is slow; if nothing has finished for 10 minutes, stop
+  // so the loop runner restarts cleanly.
+  const heartbeat = setInterval(() => {
+    const now = Date.now();
+    if (now - lastDone > 60_000) {
+      const slow = [...inFlight.values()].sort((x, y) => x.at - y.at).slice(0, 3)
+        .map((f) => `${f.name} (${Math.round((now - f.at) / 1000)}s)`);
+      console.log(`  ...${inFlight.size} in progress${slow.length ? `; longest: ${slow.join(', ')}` : ''}`);
+    }
+    if (now - lastDone > 10 * 60_000) {
+      console.error('nothing has finished for 10 minutes: stopping. Run the same command again to resume.');
+      process.exit(2);
+    }
+  }, 60_000);
+
+  const worker = async () => {
+    for (;;) {
+      if (stopping) return;
+      if (queue.length < concurrency && !exhausted) void refill();
+      if (!queue.length) {
+        if (exhausted) return;
+        await (refilling ?? new Promise((r) => setTimeout(r, 200)));
+        continue;
+      }
+      const job = queue.shift()!;
+      taken++;
+      inFlight.set(job.company_id, { name: job.name, at: Date.now() });
+      let r: Result;
+      try {
+        // Hard cap per company, so one hung site can't hold a worker forever.
+        let timer: NodeJS.Timeout | undefined;
+        r = await Promise.race([
+          crawlOne(fetcher, job),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error('company took over 3 minutes')), COMPANY_TIMEOUT_MS);
+          }),
+        ]).finally(() => clearTimeout(timer));
+      } catch (err) {
+        r = { state: 'failed', site: null, matched_on: null, contacts: [], error: String(err).slice(0, 300) };
+      }
+      processed++;
+      if (r.site) sites++;
+      contacts += Math.max(0, r.contacts.length - 1);
+      if (values['dry-run']) {
+        console.log(`${job.name}: ${r.state}${r.site ? ` ${r.site} (${r.matched_on})` : ''}`);
+        for (const c of r.contacts) console.log(`   ${c.kind}/${c.purpose}: ${c.value}`);
+      } else {
+        try {
+          await save(db, job, r);
+        } catch (err) {
+          // A contact the database refuses (should be rare) fails the company, not the run.
+          console.error(`${job.name}: not saved: ${(err as Error).message}`);
+          await db
+            .query(`update import.contact_crawl set state = 'failed', attempts = attempts + 1, last_error = $2 where company_id = $1`, [
+              job.company_id,
+              (err as Error).message.slice(0, 300),
+            ])
+            .catch(() => undefined); // still held for 2 hours, so it is retried later anyway
+        }
+      }
+      inFlight.delete(job.company_id);
+      lastDone = Date.now();
+      report();
+    }
+  };
+
+  await refill();
+  await Promise.all(Array.from({ length: concurrency }, worker)).finally(() => clearInterval(heartbeat));
+  report(true);
   await db.end();
 }
 
