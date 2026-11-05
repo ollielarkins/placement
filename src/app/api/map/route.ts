@@ -4,6 +4,9 @@ import { publicDb } from '@/lib/supabase';
 // GeoJSON for the map viewport. Clustered below zoom 10, individual sites
 // above (capped at 2,000 in map_sites). Rounded bbox keeps responses
 // cacheable at the edge.
+// Allow for a cold database on the first search after a quiet spell (default is 10 s).
+export const maxDuration = 30;
+
 export async function GET(req: Request) {
   const u = new URL(req.url);
   const n = (k: string) => Number.parseFloat(u.searchParams.get(k) ?? '');

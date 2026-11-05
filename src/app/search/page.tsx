@@ -8,6 +8,9 @@ import { humanise } from '@/lib/format';
 import { lookupOutcode } from '@/lib/outcode';
 import { ENGLAND_REGION_LABELS } from '@/types/domain';
 
+// Allow for a cold database on the first search after a quiet spell (default is 10 s).
+export const maxDuration = 30;
+
 export const metadata: Metadata = { title: 'Search employers' };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
