@@ -1,0 +1,6 @@
+# Manual matches for T Level providers whose name on the DfE list differs from GIAS.
+# One row per provider: the name exactly as on the DfE list, the UKPRN, an optional
+# postcode (blank = take it from GIAS by UKPRN), and a URL that evidences the match.
+provider_name,ukprn,postcode,source_url
+BEDFORD COLLEGE GROUP,10000610,,https://discoveruni.gov.uk/institution-details/10000610/
+UTC WARRINGTON,10057015,,https://get-information-schools.service.gov.uk/Establishments/Establishment/Details/142899

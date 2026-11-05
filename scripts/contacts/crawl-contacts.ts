@@ -1,0 +1,354 @@
+// Website and organisation-contact crawler (Phase 1).
+//
+// Works through every active company, slowly and resumably:
+//   1. Find the website. Known first (curated record, the employer's own
+//      website on an apprenticeship advert), otherwise guessed from the name
+//      (acme-engineering.co.uk, acmeengineering.com, ...). A guessed site
+//      only counts if it shows the company's Companies House number or its
+//      registered office postcode.
+//   2. Read the home page, up to two contact pages and two careers pages.
+//   3. Keep organisation routes only: role mailboxes on the company's own
+//      domain, non-mobile phone numbers, contact/careers/apply pages. The
+//      database refuses anything else (migration 0015).
+//
+//   npm run crawl:contacts                     run until the queue is empty (Ctrl+C to stop; it resumes)
+//   npm run crawl:contacts -- --limit 200      stop after 200 companies
+//   npm run crawl:contacts -- --dry-run --limit 20    print what it would save (one batch)
+//   npm run crawl:contacts -- --company <uuid> one company (any state)
+//
+// Needs DATABASE_URL and CRAWLER_CONTACT (a URL or email address a site owner
+// can use to reach you; it goes in the User-Agent). Both from the environment
+// or .env.
+//
+// Pace: ~2-3 companies a second at the default concurrency, so the full
+// register (~93k) takes most of a day. Re-checks done companies after 180
+// days, companies with no site after 90.
+
+import { existsSync, readFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
+import pg from 'pg';
+import { PoliteFetcher, type Page } from './fetcher.ts';
+import {
+  candidateHosts,
+  dedupe,
+  extractContacts,
+  interestingLinks,
+  matchIdentity,
+  type FoundContact,
+  type Match,
+} from './extract.ts';
+
+function loadEnv() {
+  if (!existsSync('.env')) return;
+  for (const line of readFileSync('.env', 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
+    if (m && !process.env[m[1]!]) process.env[m[1]!] = m[2]!.replace(/^"|"$/g, '');
+  }
+}
+
+interface Job {
+  company_id: string;
+  name: string;
+  ch_number: string | null;
+  website: string | null;
+  data_source: string;
+  postcodes: string[];
+  candidates: { url: string; origin: string }[];
+}
+
+interface Result {
+  state: 'done' | 'no_site' | 'failed';
+  site: string | null;
+  matched_on: Match | 'curated' | 'vacancy_advert' | null;
+  contacts: FoundContact[];
+  error?: string;
+}
+
+const COMPANY_TIMEOUT_MS = 3 * 60_000;
+
+async function crawlOne(f: PoliteFetcher, job: Job): Promise<Result> {
+  // 1. Known websites.
+  const known: { url: string; how: 'curated' | 'vacancy_advert' }[] = [];
+  if (job.website) known.push({ url: job.website, how: 'curated' });
+  for (const c of job.candidates) known.push({ url: c.url, how: c.origin === 'faa_vacancy' ? 'vacancy_advert' : 'curated' });
+
+  let home: Page | null = null;
+  let matched: Result['matched_on'] = null;
+  for (const k of known) {
+    const url = /^https?:\/\//i.test(k.url) ? k.url : `https://${k.url}`;
+    home = await f.get(url);
+    if (home) {
+      matched = k.how;
+      break;
+    }
+  }
+
+  // 2. Guessed websites, confirmed against the company's identity.
+  if (!home) {
+    const id = { chNumber: job.ch_number, postcodes: job.postcodes };
+    if (!id.chNumber && !id.postcodes.length) return { state: 'no_site', site: null, matched_on: null, contacts: [] };
+    for (const host of candidateHosts(job.name)) {
+      if (!(await f.resolves(host))) continue;
+      const page = (await f.get(`https://www.${host}/`)) ?? (await f.get(`https://${host}/`));
+      if (!page) continue;
+      let m = matchIdentity(page.html, id);
+      if (!m) {
+        // Company numbers usually sit in the footer, privacy or terms page.
+        const links = interestingLinks(page.html, page.url);
+        for (const u of [...links.legalPages, ...links.contactPages].slice(0, 3)) {
+          const p = await f.get(u);
+          if (p && (m = matchIdentity(p.html, id))) break;
+        }
+      }
+      if (m) {
+        home = page;
+        matched = m;
+        break;
+      }
+    }
+  }
+  if (!home) return { state: 'no_site', site: null, matched_on: null, contacts: [] };
+
+  // 3. Contacts from the home page, contact pages and careers pages.
+  const root = new URL(home.url);
+  const site = `${root.protocol}//${root.host}/`;
+  const found: FoundContact[] = [{ kind: 'website', purpose: 'general', value: site, label: null, source_url: home.url }];
+  found.push(...extractContacts(home.html, home.url));
+  const links = interestingLinks(home.html, home.url);
+  for (const u of links.contactPages) {
+    const p = await f.get(u);
+    if (p) found.push(...extractContacts(p.html, p.url, { isContactPage: true }));
+  }
+  for (const u of links.careersPages.slice(0, 2)) {
+    const p = await f.get(u);
+    if (p) found.push(...extractContacts(p.html, p.url));
+  }
+  return { state: 'done', site, matched_on: matched, contacts: dedupe(found) };
+}
+
+async function save(pool: pg.Pool, job: Job, r: Result) {
+  // Own connection per company: workers run in parallel, and transactions on a
+  // shared client would interleave.
+  const db = await pool.connect();
+  await db.query('begin');
+  try {
+    for (const c of r.contacts) {
+      // Savepoint per contact: one the database refuses is skipped, not the company.
+      await db.query('savepoint one_contact');
+      try {
+        await db.query(
+          `insert into public.company_contacts (company_id, kind, purpose, value, label, source_url, method)
+           values ($1, $2, $3, $4, $5, $6, 'crawler')
+           on conflict (company_id, kind, value) do update
+             set last_seen_at = now(),
+                 source_url = case when company_contacts.method = 'crawler' then excluded.source_url else company_contacts.source_url end`,
+          [job.company_id, c.kind, c.purpose, c.value, c.label, c.source_url],
+        );
+        await db.query('release savepoint one_contact');
+      } catch (err) {
+        await db.query('rollback to savepoint one_contact');
+        console.error(`${job.name}: skipped ${c.kind} ${c.value}: ${(err as Error).message}`);
+      }
+    }
+    if (r.site && !job.website) {
+      await db.query(`update public.companies set website = $2 where id = $1 and website is null`, [job.company_id, r.site]);
+      await db.query(
+        `insert into public.company_sources (company_id, field, url) values ($1, 'website', $2) on conflict do nothing`,
+        [job.company_id, r.site],
+      );
+    }
+    if (r.contacts.length > 1) {
+      await db.query(
+        `insert into public.company_sources (company_id, field, url) values ($1, 'contacts', $2) on conflict do nothing`,
+        [job.company_id, r.site],
+      );
+    }
+    await db.query(
+      `update import.contact_crawl
+          set state = $2::import.crawl_state, site_url = $3, matched_on = $4, contacts_found = $5, last_error = $6,
+              attempts = case when $2::text = 'failed' then attempts + 1 else 0 end,
+              checked_at = now(),
+              next_check_after = now() + case $2::text when 'done' then interval '180 days'
+                                                  when 'no_site' then interval '90 days'
+                                                  else interval '1 day' * power(2, least(attempts, 5)) end
+        where company_id = $1`,
+      [job.company_id, r.state, r.site, r.matched_on, r.contacts.length, r.error ?? null],
+    );
+    await db.query('commit');
+  } catch (err) {
+    await db.query('rollback');
+    throw err;
+  } finally {
+    db.release();
+  }
+}
+
+async function nextBatch(db: pg.Pool, n: number, only?: string): Promise<Job[]> {
+  const { rows } = await db.query<Job>(
+    `select c.id as company_id, c.name, c.ch_number, c.website, c.data_source,
+            coalesce((select array_agg(distinct s.postcode) from public.company_sites s
+                      where s.company_id = c.id and s.postcode is not null), '{}') as postcodes,
+            coalesce((select jsonb_agg(jsonb_build_object('url', w.url, 'origin', w.origin))
+                      from import.website_candidates w where w.company_id = c.id), '[]') as candidates
+       from import.contact_crawl q
+       join public.companies c on c.id = q.company_id
+      where ${only ? 'q.company_id = $2' : `q.state in ('pending', 'failed', 'done', 'no_site') and q.next_check_after <= now() and q.attempts < 6 and c.status = 'active'`}
+      order by q.priority, q.next_check_after
+      limit $1`,
+    only ? [n, only] : [n],
+  );
+  return rows;
+}
+
+async function main() {
+  loadEnv();
+  const { values } = parseArgs({
+    options: {
+      limit: { type: 'string' },
+      concurrency: { type: 'string', default: '12' },
+      'dry-run': { type: 'boolean', default: false },
+      company: { type: 'string' },
+    },
+  });
+  const limit = values.limit ? Number.parseInt(values.limit, 10) : Infinity;
+  const concurrency = Math.max(1, Math.min(32, Number.parseInt(values.concurrency!, 10)));
+  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+  const fetcher = new PoliteFetcher(process.env.CRAWLER_CONTACT ?? '');
+
+  const db = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+    max: 4, // the session pooler allows few connections; saves are quick
+    // Never wait forever on the database: a connection the pooler dropped
+    // silently would otherwise hang a save, and with it the whole batch.
+    connectionTimeoutMillis: 20_000,
+    query_timeout: 60_000,
+    keepAlive: true,
+    idleTimeoutMillis: 30_000,
+  });
+  // An idle connection dropped by the pooler emits 'error' on the pool; without
+  // a listener that would end the run. The pool replaces it on next use.
+  db.on('error', (err) => console.error(`database connection dropped, reconnecting: ${err.message}`));
+  const added = await db.query<{ n: number }>('select import.enqueue_contact_crawl() as n');
+  console.log(`queue: ${added.rows[0]!.n} companies added`);
+
+  let stopping = false;
+  process.on('SIGINT', () => {
+    if (stopping) process.exit(1);
+    stopping = true;
+    console.log('\nfinishing the companies in progress, then stopping (Ctrl+C again to quit now)');
+  });
+
+  let processed = 0;
+  let sites = 0;
+  let contacts = 0;
+  const started = Date.now();
+  while (!stopping && processed < limit) {
+    const batch = await nextBatch(db, Math.min(200, limit - processed), values.company);
+    if (!batch.length) break;
+    // Mark the batch as taken so a second run doesn't pick it up meanwhile.
+    if (!values['dry-run']) {
+      await db.query(`update import.contact_crawl set next_check_after = now() + interval '2 hours' where company_id = any($1)`, [
+        batch.map((j) => j.company_id),
+      ]);
+    }
+    let i = 0;
+    let lastDone = Date.now();
+    const inFlight = new Map<string, number>(); // company name -> start time
+    // Heartbeat: if a batch is slow, say who is holding it up. If nothing has
+    // finished for 10 minutes, stop so a restart picks up cleanly.
+    const heartbeat = setInterval(() => {
+      const now = Date.now();
+      const slow = [...inFlight.entries()].sort((a, b) => a[1] - b[1]).slice(0, 3)
+        .map(([n, t]) => `${n} (${Math.round((now - t) / 1000)}s)`);
+      console.log(`  ...batch ${i}/${batch.length} started, ${inFlight.size} in progress${slow.length ? `; longest: ${slow.join(', ')}` : ''}`);
+      if (now - lastDone > 10 * 60_000) {
+        console.error('nothing has finished for 10 minutes: stopping. Run the same command again to resume.');
+        process.exit(2);
+      }
+    }, 60_000);
+    const worker = async () => {
+      while (!stopping && i < batch.length) {
+        const job = batch[i++]!;
+        inFlight.set(job.name, Date.now());
+        let r: Result;
+        try {
+          // Hard cap per company: one hung connection must not hold up the
+          // whole batch (the next batch only starts when all workers finish).
+          let timer: NodeJS.Timeout | undefined;
+          r = await Promise.race([
+            crawlOne(fetcher, job),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(() => reject(new Error('company took over 3 minutes')), COMPANY_TIMEOUT_MS);
+            }),
+          ]).finally(() => clearTimeout(timer));
+        } catch (err) {
+          r = { state: 'failed', site: null, matched_on: null, contacts: [], error: String(err).slice(0, 300) };
+        }
+        processed++;
+        if (r.site) sites++;
+        contacts += Math.max(0, r.contacts.length - 1);
+        if (values['dry-run']) {
+          console.log(`${job.name}: ${r.state}${r.site ? ` ${r.site} (${r.matched_on})` : ''}`);
+          for (const c of r.contacts) console.log(`   ${c.kind}/${c.purpose}: ${c.value}`);
+        } else {
+          try {
+            await save(db, job, r);
+          } catch (err) {
+            // A contact the database refuses (should be rare) fails the company, not the run.
+            console.error(`${job.name}: not saved: ${(err as Error).message}`);
+            await db
+              .query(`update import.contact_crawl set state = 'failed', attempts = attempts + 1, last_error = $2 where company_id = $1`, [
+                job.company_id,
+                (err as Error).message.slice(0, 300),
+              ])
+              .catch(() => undefined); // still held for 2 hours, so it is retried later anyway
+          }
+        }
+        inFlight.delete(job.name);
+        lastDone = Date.now();
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(concurrency, batch.length) }, worker)).finally(() => clearInterval(heartbeat));
+    fetcher.prune();
+    const mins = (Date.now() - started) / 60000;
+    (globalThis as { gc?: () => void }).gc?.(); // only with --expose-gc (diagnostics)
+    const heapMb = Math.round(process.memoryUsage().heapUsed / 1e6);
+    if (process.env.CRAWL_HEAPSNAP) (await import('node:v8')).writeHeapSnapshot(`${process.env.CRAWL_HEAPSNAP}-${processed}.heapsnapshot`);
+    console.log(`${processed} companies, ${sites} websites, ${contacts} contacts, ${(processed / Math.max(mins, 0.01)).toFixed(0)}/min, ${heapMb} MB${process.env.CRAWL_DEBUG ? ` (${fetcher.stats()})` : ''}`);
+    if (values.company || values['dry-run']) break;
+  }
+  await db.end();
+}
+
+// A misbehaving website can make the HTTP stack throw outside any promise we
+// hold (a socket closing mid-response). That request is already covered by
+// its own timeout, so log it and keep crawling; anything else still stops
+// the run.
+function isNetworkNoise(err: unknown): boolean {
+  const e = err as { code?: string; stack?: string };
+  return (
+    /undici|client-h1|TLSSocket|_http_client|internal\/(http2|deps\/undici|net|tls|streams?)|node:(net|tls|http2)/.test(e?.stack ?? '') ||
+    /^(UND_ERR|ERR_HTTP2_|ERR_HTTP_|ERR_STREAM_|ERR_SSL|ERR_TLS|ECONNRESET|ECONNABORTED|EPIPE|ETIMEDOUT|ECONNREFUSED|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN)/.test(e?.code ?? '')
+  );
+}
+
+const isMain = /crawl-contacts\.ts$/.test(process.argv[1] ?? '');
+if (isMain) {
+  const onStray = (err: unknown) => {
+    if (isNetworkNoise(err)) {
+      console.error(`ignored a network error from a website: ${(err as Error)?.message ?? String(err)}`);
+      return;
+    }
+    console.error(err);
+    process.exit(1);
+  };
+  process.on('uncaughtException', onStray);
+  process.on('unhandledRejection', onStray);
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+export { crawlOne };

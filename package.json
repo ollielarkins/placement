@@ -1,0 +1,49 @@
+{
+  "name": "tlevel-placement-finder",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "colleges:build": "tsx scripts/colleges/build-colleges.ts",
+    "import:ch": "tsx scripts/companies-house/import.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "import:seed": "tsx scripts/seed/import-seed.ts",
+    "import:vacancies": "tsx scripts/vacancies/import-vacancies.ts",
+    "crawl:contacts": "tsx scripts/contacts/crawl-contacts.ts",
+    "test:scripts": "tsx --test scripts/**/*.test.ts",
+    "colleges:link": "tsx scripts/colleges/link-from-evidence.ts",
+    "crawl:contacts:loop": "tsx scripts/contacts/run-until-done.ts"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/geojson": "7946.0.16",
+    "@types/node": "22.9.0",
+    "@types/pg": "8.11.10",
+    "@types/pg-copy-streams": "1.2.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/yauzl": "2.10.3",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.20.6",
+    "typescript": "5.6.3"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
+    "cheerio": "1.1.2",
+    "csv-parse": "5.6.0",
+    "exceljs": "4.4.0",
+    "mapbox-gl": "3.33.0",
+    "next": "16.4.2",
+    "pg": "8.13.1",
+    "pg-copy-streams": "6.0.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1",
+    "yauzl": "3.2.0"
+  }
+}

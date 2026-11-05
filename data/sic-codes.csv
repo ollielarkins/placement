@@ -1,0 +1,15 @@
+sic_prefix,title,sector,min_accounts
+25,Manufacture of fabricated metal products except machinery and equipment,manufacturing,any
+26,Manufacture of computer electronic and optical products,electronics,any
+27,Manufacture of electrical equipment,electrical,any
+28,Manufacture of machinery and equipment n.e.c.,manufacturing,any
+29,Manufacture of motor vehicles trailers and semi-trailers,automotive,any
+30,Manufacture of other transport equipment,manufacturing,any
+301,Building of ships and boats,marine,any
+302,Manufacture of railway locomotives and rolling stock,rail,any
+303,Manufacture of air and spacecraft and related machinery,aerospace,any
+304,Manufacture of military fighting vehicles,defence,any
+33,Repair and installation of machinery and equipment,maintenance_and_repair,any
+351,Electric power generation transmission and distribution,energy,small
+7112,Engineering activities and related technical consultancy,engineering_services,small
+7219,Other research and experimental development on natural sciences and engineering,research_and_development,small

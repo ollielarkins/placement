@@ -1,0 +1,12 @@
+node_modules/
+.data/
+.env*
+!.env.example
+!.env.local.example
+supabase/.temp/
+supabase/.branches/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+.vercel/
+*.heapsnapshot

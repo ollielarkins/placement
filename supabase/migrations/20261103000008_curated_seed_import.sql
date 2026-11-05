@@ -1,0 +1,220 @@
+-- T Level Placement Finder: curated seed import, Phase 0.
+--
+-- scripts/seed/import-seed.ts validates data/seed/companies-seed-<region>.csv
+-- (every claim needs a source URL), geocodes site postcodes and COPYs rows
+-- into import.seed_companies. import.merge_seed() then folds them into
+-- public.companies in one transaction, writing one result per row to
+-- import.seed_results.
+--
+-- Dedupe, in the spec's order:
+--   1. CH number
+--   2. normalised name + any site postcode
+--   3. website domain
+-- If the keys point at different existing companies, the row is rejected for
+-- a human to resolve. Nothing is merged on a guess.
+--
+-- A matched record becomes Verified: the curated fields replace what was
+-- there (curation outranks an import or a student submission). Columns the
+-- curator left blank keep their existing value, so a seed row never erases
+-- data it didn't research. CH-owned columns (sic_codes, ch_status, ...) are
+-- left to the Companies House import.
+-- Operating sites: when a row lists sites, they replace the company's
+-- operating sites. The registered office (kind = registered_office) is never
+-- touched.
+
+alter table import.runs drop constraint runs_source_check;
+alter table import.runs add constraint runs_source_check
+  check (source in ('companies_house', 'apprenticeship_vacancies', 'curated_seed'));
+
+create table import.seed_companies (
+  run_id uuid not null references import.runs (id) on delete cascade,
+  row_no int not null,                    -- CSV line number, for error messages
+  file_name text not null,
+  name text not null,
+  ch_number text check (ch_number ~ '^[A-Z0-9]{8}$'),
+  website text check (website ~* '^https?://'),
+  summary text,
+  size_band public.size_band,             -- null = not researched
+  sectors text[],
+  keywords text[],
+  specialisms text[],
+  takes_tlevel public.tri_state,
+  tlevel_evidence_url text,
+  routes_onward public.route_onward[],
+  placement_patterns public.placement_pattern[],
+  accepts_under_18 public.tri_state,
+  early_careers_programme boolean,
+  trade_bodies text[],
+  how_to_apply text,
+  verified_at timestamptz not null,
+  -- [{label, postcode, region, county, lat, lon}]
+  sites jsonb not null default '[]'::jsonb check (jsonb_typeof(sites) = 'array'),
+  -- [{field, url}]
+  sources jsonb not null check (jsonb_typeof(sources) = 'array' and jsonb_array_length(sources) > 0),
+  primary key (run_id, row_no, file_name)
+);
+
+create table import.seed_results (
+  run_id uuid not null references import.runs (id) on delete cascade,
+  file_name text not null,
+  row_no int not null,
+  action text not null check (action in ('created', 'updated', 'rejected')),
+  matched_on text,                        -- ch_number | name_postcode | domain
+  company_id uuid,
+  message text,
+  primary key (run_id, file_name, row_no)
+);
+
+alter table import.seed_companies enable row level security;
+alter table import.seed_results enable row level security;
+revoke all on import.seed_companies, import.seed_results from public, anon, authenticated;
+
+create or replace function import.merge_seed(p_run_id uuid)
+returns jsonb
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_run import.runs;
+  r import.seed_companies;
+  v_by_ch uuid;
+  v_by_name uuid[];
+  v_by_domain uuid[];
+  v_ids uuid[];
+  v_id uuid;
+  v_on text;
+  v_norm text;
+  v_domain text;
+  v_postcodes text[];
+begin
+  select * into v_run from import.runs where id = p_run_id for update;
+  if not found then raise exception 'import run % not found', p_run_id; end if;
+  if v_run.source <> 'curated_seed' then raise exception 'run % is not a curated_seed run', p_run_id; end if;
+  if v_run.finished_at is not null then raise exception 'import run % already merged', p_run_id; end if;
+
+  for r in
+    select * from import.seed_companies where run_id = p_run_id order by file_name, row_no
+  loop
+    -- Same normalisation as the generated columns on public.companies.
+    v_norm := trim(regexp_replace(
+      regexp_replace(lower(r.name), '\m(ltd|limited|plc|llp|uk|the|group|co)\M', '', 'g'),
+      '[^a-z0-9]+', ' ', 'g'));
+    v_domain := nullif(regexp_replace(lower(r.website), '^https?://(www\.)?([^/:?#]+).*$', '\2'), lower(r.website));
+    v_postcodes := array(
+      select replace(upper(s ->> 'postcode'), ' ', '') from jsonb_array_elements(r.sites) s
+      where s ->> 'postcode' is not null
+    );
+
+    v_by_ch := null;
+    if r.ch_number is not null then
+      select id into v_by_ch from public.companies where ch_number = r.ch_number;
+    end if;
+
+    v_by_name := array(
+      select distinct c.id from public.companies c
+      join public.company_sites cs on cs.company_id = c.id
+      where c.name_normalised = v_norm
+        and replace(upper(cs.postcode), ' ', '') = any (v_postcodes)
+    );
+    v_by_domain := case when v_domain is null then '{}'::uuid[] else array(
+      select id from public.companies where website_domain = v_domain
+    ) end;
+
+    v_ids := array(
+      select distinct x from unnest(array[v_by_ch] || v_by_name || v_by_domain) x where x is not null
+    );
+
+    if cardinality(v_ids) > 1 then
+      insert into import.seed_results (run_id, file_name, row_no, action, message)
+      values (p_run_id, r.file_name, r.row_no, 'rejected',
+        format('matches %s existing companies (CH number, name + postcode and domain disagree): %s',
+               cardinality(v_ids), array_to_string(v_ids, ', ')));
+      continue;
+    end if;
+
+    -- The CH number would collide with a different record: also reject.
+    if cardinality(v_ids) = 1 and r.ch_number is not null and v_by_ch is null and exists (
+      select 1 from public.companies where id = v_ids[1] and ch_number is not null and ch_number <> r.ch_number
+    ) then
+      insert into import.seed_results (run_id, file_name, row_no, action, company_id, message)
+      values (p_run_id, r.file_name, r.row_no, 'rejected', v_ids[1],
+        'matched on name/domain, but that company has a different CH number');
+      continue;
+    end if;
+
+    v_on := case
+      when v_by_ch is not null then 'ch_number'
+      when cardinality(v_by_name) = 1 then 'name_postcode'
+      when cardinality(v_by_domain) = 1 then 'domain'
+    end;
+
+    if cardinality(v_ids) = 0 then
+      insert into public.companies (
+        name, ch_number, website, summary, size_band, sectors, keywords, specialisms,
+        takes_tlevel, tlevel_evidence_url, routes_onward, placement_patterns, accepts_under_18,
+        early_careers_programme, trade_bodies, how_to_apply, data_source, verified_at
+      ) values (
+        r.name, r.ch_number, r.website, r.summary, coalesce(r.size_band, 'unknown'),
+        coalesce(r.sectors, '{}'), coalesce(r.keywords, '{}'), coalesce(r.specialisms, '{}'),
+        coalesce(r.takes_tlevel, 'unknown'), r.tlevel_evidence_url, coalesce(r.routes_onward, '{}'),
+        coalesce(r.placement_patterns, '{}'), coalesce(r.accepts_under_18, 'unknown'),
+        coalesce(r.early_careers_programme, false), coalesce(r.trade_bodies, '{}'), r.how_to_apply,
+        'verified', r.verified_at
+      ) returning id into v_id;
+    else
+      v_id := v_ids[1];
+      update public.companies c set
+        name = r.name,
+        ch_number = coalesce(c.ch_number, r.ch_number),
+        website = coalesce(r.website, c.website),
+        summary = coalesce(r.summary, c.summary),
+        size_band = coalesce(r.size_band, c.size_band),
+        sectors = coalesce(r.sectors, c.sectors),
+        keywords = coalesce(r.keywords, c.keywords),
+        specialisms = coalesce(r.specialisms, c.specialisms),
+        takes_tlevel = coalesce(r.takes_tlevel, c.takes_tlevel),
+        tlevel_evidence_url = coalesce(r.tlevel_evidence_url, c.tlevel_evidence_url),
+        routes_onward = coalesce(r.routes_onward, c.routes_onward),
+        placement_patterns = coalesce(r.placement_patterns, c.placement_patterns),
+        accepts_under_18 = coalesce(r.accepts_under_18, c.accepts_under_18),
+        early_careers_programme = coalesce(r.early_careers_programme, c.early_careers_programme),
+        trade_bodies = coalesce(r.trade_bodies, c.trade_bodies),
+        how_to_apply = coalesce(r.how_to_apply, c.how_to_apply),
+        data_source = 'verified',
+        verified_at = r.verified_at,
+        -- New T Level evidence re-opens a company marked as not taking
+        -- placements. Hidden and dissolved are left alone (admin / CH decide).
+        status = case when c.status = 'not_taking_placements' and r.takes_tlevel = 'yes'
+                      then 'active' else c.status end
+      where c.id = v_id;
+    end if;
+
+    if jsonb_array_length(r.sites) > 0 then
+      delete from public.company_sites where company_id = v_id and kind = 'operating_site';
+      insert into public.company_sites (company_id, kind, label, postcode, region, county, location)
+      select v_id, 'operating_site', s ->> 'label', s ->> 'postcode',
+             (s ->> 'region')::public.england_region, s ->> 'county',
+             extensions.st_setsrid(extensions.st_makepoint((s ->> 'lon')::float8, (s ->> 'lat')::float8), 4326)::extensions.geography
+      from jsonb_array_elements(r.sites) s;
+    end if;
+
+    insert into public.company_sources (company_id, field, url)
+    select v_id, s ->> 'field', s ->> 'url' from jsonb_array_elements(r.sources) s
+    on conflict (company_id, field, url) do update set captured_at = now();
+
+    insert into import.seed_results (run_id, file_name, row_no, action, matched_on, company_id)
+    values (p_run_id, r.file_name, r.row_no,
+            case when v_on is null then 'created' else 'updated' end, v_on, v_id);
+  end loop;
+
+  delete from import.seed_companies where run_id = p_run_id;
+  update import.runs set finished_at = now(), stats = (
+    select jsonb_object_agg(action, n) from (
+      select action, count(*) as n from import.seed_results where run_id = p_run_id group by action
+    ) t
+  ) where id = p_run_id;
+  return (select stats from import.runs where id = p_run_id);
+end;
+$$;
+
+revoke execute on function import.merge_seed(uuid) from public, anon, authenticated;
