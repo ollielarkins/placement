@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from 'next';
+import { Archivo } from 'next/font/google';
 import Link from 'next/link';
 import './globals.css';
+
+// One variable family: normal width for text, expanded for headlines.
+const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' });
 
 export const metadata: Metadata = {
   title: { default: 'T Level Placement Finder', template: '%s · T Level Placement Finder' },
@@ -8,38 +12,66 @@ export const metadata: Metadata = {
     'Find, compare and rank engineering employers in England for your T Level industry placement. Every company shows where its information came from.',
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#0f766e' };
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#111111' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB">
-      <body className="min-h-screen font-sans antialiased">
+    <html lang="en-GB" className={archivo.variable}>
+      <body className="flex min-h-screen flex-col font-sans antialiased">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:bg-white focus:p-2">
           Skip to content
         </a>
-        <header className="border-b border-slate-200 bg-white">
+        <header className="border-b-2 border-ink bg-paper">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3" aria-label="Main">
-            <Link href="/" className="font-semibold text-brand-700">
-              T Level Placement Finder
+            <Link href="/" className="group flex items-center gap-2" aria-label="T Level Placement Finder, home">
+              <span aria-hidden className="grid size-8 place-items-center border-2 border-ink bg-volt text-lg leading-none shadow-hard-sm transition group-hover:-translate-y-0.5">
+                ◆
+              </span>
+              <span className="grid leading-none">
+                <span className="text-[10px] font-semibold tracking-[0.2em]">T LEVEL</span>
+                <span className="display text-base sm:text-lg">Placement Finder</span>
+              </span>
             </Link>
-            <div className="flex gap-4 text-sm">
-              <Link href="/search" className="hover:underline">Search</Link>
-              <Link href="/map" className="hover:underline">Map</Link>
-              <Link href="/regions" className="hover:underline">Regions</Link>
+            <div className="flex gap-1 text-sm font-semibold">
+              {(
+                [
+                  ['/search', 'Search'],
+                  ['/map', 'Map'],
+                  ['/regions', 'Regions'],
+                ] as const
+              ).map(([href, label]) => (
+                <Link key={href} href={href} className="px-2 py-1 hover:bg-volt">
+                  {label}
+                </Link>
+              ))}
             </div>
             {/* One static link keeps every page cacheable: /account sends signed-out visitors to sign in. */}
-            <Link href="/account" className="ml-auto text-sm font-medium text-brand-700 hover:underline">Account</Link>
+            <Link href="/account" className="ml-auto border-2 border-ink bg-ink px-3 py-1 text-sm font-semibold text-volt shadow-hard-sm hover:bg-volt hover:text-ink">
+              Account
+            </Link>
           </nav>
         </header>
-        <main id="main" className="mx-auto max-w-6xl px-4 py-6">
+        <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
           {children}
         </main>
-        <footer className="mx-auto max-w-6xl px-4 pb-10 pt-4 text-xs text-slate-500">
-          <p>
-            Company data: Companies House and Find an apprenticeship (Open Government Licence v3.0), plus curated
-            research with a source for every claim. Your postcode is cut to its first half (for example MK45) before
-            anything else happens, and is never stored. <Link href="/privacy" className="underline">Privacy notice</Link>.
-          </p>
+        <footer className="mt-10 border-t-2 border-ink bg-ink text-paper">
+          <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-sm sm:grid-cols-[1fr_auto]">
+            <div className="grid gap-2">
+              <p className="display text-2xl text-volt">Placement Finder</p>
+              <p className="max-w-xl text-paper/80">
+                Built by a T Level student, for T Level students. Company data: Companies House and Find an
+                apprenticeship (Open Government Licence v3.0), plus research with a source for every claim.
+              </p>
+              <p className="max-w-xl text-paper/80">
+                Your postcode is cut to its first half (for example MK45) before anything else happens, and is never
+                stored.
+              </p>
+            </div>
+            <nav aria-label="Footer" className="flex gap-4 self-end font-semibold">
+              <Link href="/privacy" className="underline decoration-volt decoration-2 underline-offset-4">Privacy</Link>
+              <Link href="/regions" className="underline decoration-volt decoration-2 underline-offset-4">Regions</Link>
+            </nav>
+          </div>
         </footer>
       </body>
     </html>

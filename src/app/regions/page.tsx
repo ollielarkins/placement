@@ -16,7 +16,7 @@ export default async function RegionsPage() {
   return (
     <div className="grid gap-6">
       <header className="grid gap-2">
-        <h1 className="text-2xl font-semibold">Where the employers are</h1>
+        <h1 className="display text-3xl sm:text-4xl">Where the employers are</h1>
         <p className="max-w-2xl text-slate-700">
           Engineering employers with a site in each region of England. &quot;Checked&quot; means a person has looked for
           evidence that they take T Level students. Many registered offices are accountants&apos; addresses, so
@@ -24,7 +24,7 @@ export default async function RegionsPage() {
         </p>
       </header>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto border-2 border-ink bg-white">
         <table className="w-full min-w-[36rem] text-sm">
           <thead className="bg-slate-50 text-left text-slate-600">
             <tr>
@@ -55,7 +55,7 @@ export default async function RegionsPage() {
                 </td>
                 <td className="px-4 py-2">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 rounded bg-brand-600" style={{ width: `${(r.companies / max) * 10}rem` }} aria-hidden />
+                    <div className="h-3 bg-ink" style={{ width: `${(r.companies / max) * 10}rem` }} aria-hidden />
                     <span className="tabular-nums">{r.companies.toLocaleString('en-GB')}</span>
                   </div>
                 </td>

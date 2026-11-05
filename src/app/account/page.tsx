@@ -30,13 +30,13 @@ export default async function AccountPage({ searchParams }: Props) {
   return (
     <div className="grid max-w-2xl gap-6">
       <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold">Your account</h1>
+        <h1 className="display text-3xl sm:text-4xl">Your account</h1>
         <p className="text-sm text-slate-600">Signed in as {user.email} (by {via}).</p>
       </header>
 
       {p.saved ? <p role="status" className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900">Profile saved.</p> : null}
 
-      <section className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <section className="grid gap-3 border-2 border-ink bg-white p-4">
         <h2 className="font-semibold">Your profile</h2>
         {pr && complete ? (
           <dl className="grid gap-1 text-sm">
@@ -48,7 +48,7 @@ export default async function AccountPage({ searchParams }: Props) {
         )}
         <div className="flex flex-wrap gap-3">
           {pr && complete ? (
-            <Link href={profileSearchHref(pr)} className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
+            <Link href={profileSearchHref(pr)} className="border-2 border-ink bg-ink px-4 py-2 text-sm font-bold text-volt hover:bg-volt hover:text-ink">
               Search with my profile
             </Link>
           ) : null}
@@ -58,7 +58,7 @@ export default async function AccountPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <section className="grid gap-2 rounded-xl border border-slate-200 bg-white p-4">
+      <section className="grid gap-2 border-2 border-ink bg-white p-4">
         <h2 className="font-semibold">Your shortlist</h2>
         <p className="text-sm text-slate-700">
           {saved} saved{due ? `, ${due} to follow up today` : ''}.

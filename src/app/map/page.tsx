@@ -19,8 +19,8 @@ export default async function MapPage({ searchParams }: Props) {
 
   return (
     <div className="grid gap-4">
-      <h1 className="text-2xl font-semibold">Map</h1>
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <h1 className="display text-3xl sm:text-4xl">Map</h1>
+      <section className="border-2 border-ink bg-white p-4">
         <LocationForm reference={ref} defaults={{ oc: s.oc, km: s.km, route: s.route, spec: s.spec }} dest="map" compact />
       </section>
       {token ? (

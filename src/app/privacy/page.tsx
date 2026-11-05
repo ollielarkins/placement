@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose-sm grid max-w-2xl gap-4 text-slate-800">
       <header className="grid gap-1">
-        <h1 className="text-2xl font-semibold">Privacy notice</h1>
+        <h1 className="display text-3xl sm:text-4xl">Privacy notice</h1>
         <p className="text-sm text-slate-600">Version {PRIVACY_NOTICE_VERSION}. Draft: being reviewed before launch.</p>
       </header>
 
@@ -94,7 +94,7 @@ export default function PrivacyPage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-2 rounded-xl border border-slate-200 bg-white p-4">
+    <section className="grid gap-2 border-2 border-ink bg-white p-4">
       <h2 className="font-semibold">{title}</h2>
       {children}
     </section>

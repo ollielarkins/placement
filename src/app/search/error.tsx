@@ -6,7 +6,7 @@ import Link from 'next/link';
 // message stays in the server logs; students get a plain next step.
 export default function SearchError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-6">
+    <div className="grid gap-3 border-2 border-ink bg-white p-6">
       <h1 className="text-lg font-semibold">Search took too long</h1>
       <p className="text-slate-700">
         We couldn&apos;t rank employers just now. Try again, or narrow the search with your postcode or a smaller
@@ -16,7 +16,7 @@ export default function SearchError({ reset }: { error: Error & { digest?: strin
         <button
           type="button"
           onClick={() => reset()}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
+          className="border-2 border-ink bg-ink px-4 py-2 font-bold text-volt hover:bg-volt hover:text-ink"
         >
           Try again
         </button>

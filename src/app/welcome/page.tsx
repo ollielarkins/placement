@@ -15,8 +15,8 @@ export default async function WelcomePage({ searchParams }: Props) {
   if (ageConfirmed) redirect(next);
 
   return (
-    <section className="mx-auto grid max-w-lg gap-5 rounded-xl border border-slate-200 bg-white p-6">
-      <h1 className="text-xl font-semibold">One quick check</h1>
+    <section className="mx-auto grid max-w-lg gap-5 border-2 border-ink bg-white p-6">
+      <h1 className="display text-2xl">One quick check</h1>
       <p className="text-slate-700">
         This service is for T Level students aged 16 and over. We don’t ask for your date of birth, just that you
         confirm it.
@@ -39,7 +39,7 @@ export default async function WelcomePage({ searchParams }: Props) {
             (what we keep, why, and how to delete it).
           </span>
         </label>
-        <button type="submit" className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700">
+        <button type="submit" className="border-2 border-ink bg-ink px-4 py-2 font-bold text-volt hover:bg-volt hover:text-ink">
           Continue
         </button>
       </form>

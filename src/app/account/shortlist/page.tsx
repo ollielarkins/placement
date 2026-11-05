@@ -29,7 +29,7 @@ export default async function ShortlistPage({ searchParams }: Props) {
     <div className="grid gap-6">
       <header className="grid gap-1">
         <p className="text-sm"><Link href="/account" className="text-brand-700 underline">Your account</Link></p>
-        <h1 className="text-2xl font-semibold">Your shortlist</h1>
+        <h1 className="display text-3xl sm:text-4xl">Your shortlist</h1>
         <p className="text-sm text-slate-600">
           {items.length} {items.length === 1 ? 'company' : 'companies'}. Only you can see this.
         </p>
@@ -73,7 +73,7 @@ export default async function ShortlistPage({ searchParams }: Props) {
             ))}
           </div>
           {closed.length ? (
-            <details className="rounded-xl border border-slate-200 bg-white p-4">
+            <details className="border-2 border-ink bg-white p-4">
               <summary className="cursor-pointer text-sm font-semibold">Closed ({closed.length})</summary>
               <div className="mt-3 grid gap-2 md:grid-cols-3">{closed.map((t) => <Card key={t.id} t={t} />)}</div>
             </details>
@@ -129,7 +129,7 @@ function Card({ t }: { t: TrackerItem }) {
             <span className="font-medium">Notes</span>
             <textarea name="notes" defaultValue={t.notes ?? ''} maxLength={5000} rows={3} className="rounded-md border border-slate-300 px-2 py-1" />
           </label>
-          <button type="submit" className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700">Save</button>
+          <button type="submit" className="border-2 border-ink bg-ink px-3 py-1.5 text-xs font-bold text-volt hover:bg-volt hover:text-ink">Save</button>
         </form>
         <form action={removeItem} className="mt-2">
           <input type="hidden" name="id" value={t.id} />

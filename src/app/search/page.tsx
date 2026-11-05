@@ -26,7 +26,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <div className="grid gap-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-4">
+      <section className="border-2 border-ink bg-white p-4">
         <LocationForm reference={ref} defaults={{ oc: s.oc, km: s.km, route: s.route, spec: s.spec }} compact />
         {pcError ? (
           <p role="alert" className="mt-2 text-sm text-red-700">
@@ -42,7 +42,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         {/* Phones: filters collapse so results come first. Desktop: always-open sidebar. Same GET form, no JS. */}
-        <details className="rounded-xl border border-slate-200 bg-white lg:hidden">
+        <details className="border-2 border-ink bg-white lg:hidden">
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Filters and what matters to you</summary>
           <Filters s={s} sectors={ref.sectors} bare />
         </details>
@@ -82,7 +82,7 @@ function Filters({ s, sectors, bare = false }: { s: SearchState; sectors: string
     <form
       method="get"
       action="/search"
-      className={`grid content-start gap-5 p-4 text-sm ${bare ? 'border-t border-slate-100' : 'rounded-xl border border-slate-200 bg-white'}`}
+      className={`grid content-start gap-5 p-4 text-sm ${bare ? 'border-t border-slate-100' : 'border-2 border-ink bg-white'}`}
     >
       {/* Location and route come from the form above; keep them. */}
       {s.oc ? <input type="hidden" name="oc" value={s.oc} /> : null}
@@ -136,7 +136,7 @@ function Filters({ s, sectors, bare = false }: { s: SearchState; sectors: string
       </fieldset>
 
       <div className="flex gap-2">
-        <button type="submit" className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700">
+        <button type="submit" className="border-2 border-ink bg-ink px-4 py-2 font-bold text-volt hover:bg-volt hover:text-ink">
           Apply
         </button>
         <Link href={searchHref({ ...s, q: null, region: null, sectors: [], sizes: [], taken: false, onward: false, sources: [], outside: false, weights: { route_onward: 30, specialism_fit: 25, practicalities: 25, brand: 20 }, page: 1 })} className="rounded-md px-4 py-2 text-slate-600 hover:underline">

@@ -25,7 +25,7 @@ export default async function DraftsPage({ searchParams }: Props) {
     <div className="grid max-w-2xl gap-5">
       <header className="grid gap-1">
         <p className="text-sm"><Link href="/account" className="text-brand-700 underline">Your account</Link></p>
-        <h1 className="text-2xl font-semibold">Your drafts</h1>
+        <h1 className="display text-3xl sm:text-4xl">Your drafts</h1>
         <p className="text-sm text-slate-600">Start a new one from any company on your <Link href="/account/shortlist" className="underline">shortlist</Link>.</p>
       </header>
       {p.deleted ? <p role="status" className="rounded-md bg-slate-100 p-3 text-sm">Draft deleted.</p> : null}

@@ -38,7 +38,7 @@ export default async function DraftPage({ params, searchParams }: Props) {
     <div className="grid max-w-2xl gap-5">
       <header className="grid gap-1">
         <p className="text-sm"><Link href="/account/drafts" className="text-brand-700 underline">Your drafts</Link></p>
-        <h1 className="text-2xl font-semibold">{CHANNEL_LABEL[d.channel]} to {name}</h1>
+        <h1 className="display text-3xl sm:text-4xl">{CHANNEL_LABEL[d.channel]} to {name}</h1>
         <p className="text-sm text-slate-600">
           Drafted {ukDate(d.created_at)}{d.sent_at ? ` · you sent it ${ukDate(d.sent_at)}` : ''}. Check every line before
           you send it: it’s your message.
@@ -58,7 +58,7 @@ export default async function DraftPage({ params, searchParams }: Props) {
         </p>
       ) : null}
 
-      <form action={saveDraft} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <form action={saveDraft} className="grid gap-3 border-2 border-ink bg-white p-4">
         <input type="hidden" name="id" value={d.id} />
         {d.channel === 'email' ? (
           <label className="grid gap-1 text-sm">
@@ -71,13 +71,13 @@ export default async function DraftPage({ params, searchParams }: Props) {
           <textarea name="body" defaultValue={d.body} rows={14} maxLength={5000} className="rounded-md border border-slate-300 px-3 py-2 font-[inherit]" />
         </label>
         <div className="flex flex-wrap gap-3">
-          <button type="submit" className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">Save changes</button>
+          <button type="submit" className="border-2 border-ink bg-ink px-4 py-2 text-sm font-bold text-volt hover:bg-volt hover:text-ink">Save changes</button>
           <CopyButton text={full} />
         </div>
       </form>
 
       {contacts?.length ? (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+        <section className="border-2 border-ink bg-white p-4 text-sm">
           <h2 className="mb-2 font-semibold">Where to send it</h2>
           <ul className="grid gap-1">
             {contacts.map((k) => (

@@ -27,8 +27,8 @@ export function SaveButton({ companyId, compact = false }: { companyId: string; 
 
   if (state === 'saved') {
     return (
-      <Link href="/account/shortlist" className={`${compact ? 'text-xs' : 'text-sm'} font-medium text-emerald-800 underline`}>
-        On your shortlist
+      <Link href="/account/shortlist" className={`${compact ? 'text-xs' : 'text-sm'} bg-volt px-2 py-0.5 font-bold text-ink`}>
+        ✓ On your shortlist
       </Link>
     );
   }
@@ -50,7 +50,7 @@ export function SaveButton({ companyId, compact = false }: { companyId: string; 
         type="button"
         onClick={onClick}
         disabled={pending}
-        className={`rounded-md border border-brand-600 font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-60 ${
+        className={`border-2 border-ink font-bold hover:bg-volt disabled:opacity-60 ${
           compact ? 'px-2 py-0.5 text-xs' : 'px-3 py-1.5 text-sm'
         }`}
       >

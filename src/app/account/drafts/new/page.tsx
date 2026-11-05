@@ -37,7 +37,7 @@ export default async function NewDraftPage({ searchParams }: Props) {
     <div className="grid max-w-xl gap-5">
       <header className="grid gap-1">
         <p className="text-sm"><Link href="/account/shortlist" className="text-brand-700 underline">Your shortlist</Link></p>
-        <h1 className="text-2xl font-semibold">Draft a message to {displayName(c.name)}</h1>
+        <h1 className="display text-3xl sm:text-4xl">Draft a message to {displayName(c.name)}</h1>
         <p className="text-sm text-slate-600">
           Claude writes a first draft from your profile and what we know about the company. You check it, fill in the
           [gaps] and send it yourself. We never contact employers for you.
@@ -52,7 +52,7 @@ export default async function NewDraftPage({ searchParams }: Props) {
           <Link href="/account/profile" className="underline">Add your T Level and skills</Link> for a better draft.
         </p>
       ) : null}
-      <form action={createDraft} className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4">
+      <form action={createDraft} className="grid gap-4 border-2 border-ink bg-white p-4">
         <input type="hidden" name="company" value={c.id} />
         <fieldset className="grid gap-2">
           <legend className="mb-1 text-sm font-medium">Type of message</legend>
@@ -75,7 +75,7 @@ export default async function NewDraftPage({ searchParams }: Props) {
           </label>
         </fieldset>
         <button type="submit" disabled={left === 0}
-          className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
+          className="border-2 border-ink bg-ink px-4 py-2 font-bold text-volt hover:bg-volt hover:text-ink disabled:opacity-50">
           Write my draft
         </button>
         <p className="text-xs text-slate-500">

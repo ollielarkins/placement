@@ -1,12 +1,55 @@
 @import "tailwindcss";
 
+/*
+ * Brand: ink on warm paper, one loud colour (volt), cobalt for college links.
+ * Sharp corners and hard offset shadows instead of soft cards. The palette
+ * overrides Tailwind's slate/sky/emerald/amber so every existing page picks
+ * the new look up; key components are restyled by hand on top.
+ */
 @theme {
-  --color-brand-50: #eef7f6;
-  --color-brand-100: #d5ecea;
-  --color-brand-600: #0f766e;
-  --color-brand-700: #115e59;
-  --color-brand-900: #134e4a;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-ink: #111111;
+  --color-paper: #f6f4ee;
+  --color-volt: #d8ff3d;
+  --color-volt-soft: #efffb3;
+  --color-cobalt: #2f45ff;
+
+  --color-brand-50: #efffb3;
+  --color-brand-100: #e2ff7a;
+  --color-brand-600: #111111;
+  --color-brand-700: #000000;
+  --color-brand-900: #111111;
+
+  --color-slate-50: #f6f4ee;
+  --color-slate-100: #ece9e0;
+  --color-slate-200: #d8d3c6;
+  --color-slate-300: #1d1d1d;
+  --color-slate-500: #6a655b;
+  --color-slate-600: #4d4941;
+  --color-slate-700: #2d2a25;
+  --color-slate-800: #1d1b18;
+  --color-slate-900: #111111;
+
+  --color-sky-50: #e8ebff;
+  --color-sky-200: #2f45ff;
+  --color-sky-800: #1f2fd1;
+  --color-sky-900: #1a27b0;
+
+  --color-emerald-50: #efffb3;
+  --color-emerald-800: #111111;
+  --color-emerald-900: #111111;
+
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-full: 9999px;
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --shadow-hard: 4px 4px 0 0 var(--color-ink);
+  --shadow-hard-sm: 2px 2px 0 0 var(--color-ink);
+  --shadow-volt: 6px 6px 0 0 var(--color-volt);
 }
 
 html {
@@ -14,12 +57,40 @@ html {
 }
 
 body {
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-feature-settings: "ss01", "tnum";
+}
+
+/* Big expanded uppercase type for headlines and the wordmark. */
+.display {
+  font-stretch: 125%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+}
+
+/* Links: ink, underlined, a volt highlight on hover. */
+a.link,
+main a[class*="underline"] {
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+main a[class*="underline"]:hover {
+  background: var(--color-volt);
+}
+
+/* Inputs: crisp ink outline, no soft rings. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  border-width: 1.5px;
+  background-color: #fff;
 }
 
 /* Visible focus for keyboard users everywhere. */
 :focus-visible {
-  outline: 3px solid var(--color-brand-600);
+  outline: 3px solid var(--color-cobalt);
   outline-offset: 2px;
 }

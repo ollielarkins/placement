@@ -61,7 +61,7 @@ export default async function CompanyPage({ params }: Props) {
       <header className="grid gap-2">
         <p className="text-sm"><Link href="/search" className="text-brand-700 underline">Back to search</Link></p>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold">{name}</h1>
+          <h1 className="display text-3xl sm:text-4xl">{name}</h1>
           <SaveButton companyId={c.id} />
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
@@ -78,9 +78,9 @@ export default async function CompanyPage({ params }: Props) {
         {c.colleges.length ? (
           <ul className="flex flex-wrap gap-2 text-sm" aria-label="Colleges it works with">
             {c.colleges.map((l) => (
-              <li key={`${l.college_id}-${l.kind}`} className="rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-sky-900">
+              <li key={`${l.college_id}-${l.kind}`} className="bg-cobalt px-2 py-0.5 font-medium text-white">
                 {l.label}{' '}
-                <a className="text-sky-800 underline" href={l.source_url} rel="noopener noreferrer nofollow" target="_blank">
+                <a className="text-white underline" href={l.source_url} rel="noopener noreferrer nofollow" target="_blank">
                   source
                 </a>
               </li>
@@ -205,7 +205,7 @@ export default async function CompanyPage({ params }: Props) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4">
+    <section className="border-2 border-ink bg-white p-4">
       <h2 className="mb-3 font-semibold">{title}</h2>
       {children}
     </section>

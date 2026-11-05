@@ -44,7 +44,7 @@ export default async function ProfilePage({ searchParams }: Props) {
     <div className="grid max-w-2xl gap-6">
       <header className="grid gap-1">
         <p className="text-sm"><Link href="/account" className="text-brand-700 underline">Your account</Link></p>
-        <h1 className="text-2xl font-semibold">Your profile</h1>
+        <h1 className="display text-3xl sm:text-4xl">Your profile</h1>
         <p className="text-sm text-slate-600">
           Everything here is optional and only you can see it. It sets up your searches and, later, helps draft
           messages to employers.
@@ -140,7 +140,7 @@ export default async function ProfilePage({ searchParams }: Props) {
         </Fieldset>
 
         <div className="flex gap-3">
-          <button type="submit" className="rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700">Save profile</button>
+          <button type="submit" className="border-2 border-ink bg-ink px-4 py-2 font-bold text-volt hover:bg-volt hover:text-ink">Save profile</button>
           <Link href="/account" className="rounded-md px-4 py-2 text-brand-700 underline">Cancel</Link>
         </div>
       </form>
@@ -150,7 +150,7 @@ export default async function ProfilePage({ searchParams }: Props) {
 
 function Fieldset({ legend, children }: { legend: string; children: React.ReactNode }) {
   return (
-    <fieldset className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4">
+    <fieldset className="grid gap-3 border-2 border-ink bg-white p-4">
       <legend className="px-1 font-semibold">{legend}</legend>
       {children}
     </fieldset>
