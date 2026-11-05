@@ -13,6 +13,10 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a2', 'student2@example.test'),
   ('00000000-0000-0000-0000-0000000000a3', 'student3@example.test'),
   ('00000000-0000-0000-0000-0000000000ad', 'admin@example.test');
+-- Fixture students have confirmed they're 16+ (0017/0018 lock writes until then).
+update public.profiles set age_confirmed_at = now()
+ where user_id in ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a2',
+                   '00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000ad');
 
 insert into public.tlevel_routes (id, name, occupational_specialisms, specialism_labels, sic_prefixes) values
   ('fixture_route', 'Fixture Route', array['fixture_eee', 'fixture_mech'],

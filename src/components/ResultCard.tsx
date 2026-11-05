@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { RankedCompany } from '@/types/domain';
 import { displayName, miles } from '@/lib/format';
+import { SaveButton } from './SaveButton';
 import { SourceBadge } from './SourceBadge';
 
 export function ResultCard({ r, hasOrigin, colleges = [] }: { r: RankedCompany; hasOrigin: boolean; colleges?: string[] }) {
@@ -12,11 +13,14 @@ export function ResultCard({ r, hasOrigin, colleges = [] }: { r: RankedCompany; 
       <div className="flex items-start gap-4">
         <ScoreRing score={r.score} />
         <div className="min-w-0 flex-1">
-          <h3 className="font-semibold">
-            <Link href={`/companies/${r.company_id}`} className="hover:underline">
-              {displayName(r.name)}
-            </Link>
-          </h3>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h3 className="font-semibold">
+              <Link href={`/companies/${r.company_id}`} className="hover:underline">
+                {displayName(r.name)}
+              </Link>
+            </h3>
+            <SaveButton companyId={r.company_id} compact />
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
             <SourceBadge source={r.data_source} verifiedAt={r.verified_at} />
             {dist ? <span>{dist} away</span> : null}

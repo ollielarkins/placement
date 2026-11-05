@@ -58,7 +58,7 @@ export async function siteOrigin(): Promise<string> {
 
 /** Only same-site relative paths, so ?next= can't send anyone elsewhere. */
 export function safeNext(next: string | null | undefined, fallback = '/account'): string {
-  return next && /^\/(?!\/)[\w\-./?=&%]*$/.test(next) ? next : fallback;
+  return next && next.length <= 1000 && /^\/(?!\/)[\w\-./?=&%,+:]*$/.test(next) ? next : fallback;
 }
 
 export const PRIVACY_NOTICE_VERSION = '2026-11-05';

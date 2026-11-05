@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { requireUser, sessionDb } from '@/lib/auth/session';
 import { specialismNames } from '@/lib/data';
+import { isOverdue, type TrackerStage } from '@/lib/tracker';
 import { PROFILE_COLUMNS, TRAVEL_KM, profileSearchHref, type Profile } from '@/lib/profile';
 import { deleteAccount } from './actions';
 
@@ -21,6 +22,9 @@ export default async function AccountPage({ searchParams }: Props) {
     specialismNames(),
   ]);
   const pr = data as Profile | null;
+  const { data: tracked } = await db.from('tracker_items').select('stage, follow_up_on').eq('user_id', user.id);
+  const saved = tracked?.length ?? 0;
+  const due = (tracked ?? []).filter((t) => isOverdue(t as { stage: TrackerStage; follow_up_on: string | null })).length;
   const complete = Boolean(pr?.home_outcode && pr?.route_id);
 
   return (
@@ -52,7 +56,16 @@ export default async function AccountPage({ searchParams }: Props) {
             {complete ? 'Edit profile' : 'Set up your profile'}
           </Link>
         </div>
-        <p className="text-xs text-slate-500">Shortlist and application tracker: coming next.</p>
+      </section>
+
+      <section className="grid gap-2 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="font-semibold">Your shortlist</h2>
+        <p className="text-sm text-slate-700">
+          {saved} saved{due ? `, ${due} to follow up today` : ''}.
+        </p>
+        <Link href="/account/shortlist" className="w-fit rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">
+          Open shortlist
+        </Link>
       </section>
 
       <form action="/auth/sign-out" method="post">

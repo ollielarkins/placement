@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { SaveButton } from '@/components/SaveButton';
 import { SourceBadge } from '@/components/SourceBadge';
 import { companyDetail, specialismNames, type CompanyContact, type CompanyDetail } from '@/lib/data';
 
@@ -59,7 +60,10 @@ export default async function CompanyPage({ params }: Props) {
     <article className="grid gap-6">
       <header className="grid gap-2">
         <p className="text-sm"><Link href="/search" className="text-brand-700 underline">Back to search</Link></p>
-        <h1 className="text-2xl font-semibold">{name}</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold">{name}</h1>
+          <SaveButton companyId={c.id} />
+        </div>
         <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600">
           <SourceBadge source={c.data_source} verifiedAt={c.verified_at} />
           {c.size_band !== 'unknown' ? <span>{SIZE_LABEL[c.size_band]}</span> : null}
