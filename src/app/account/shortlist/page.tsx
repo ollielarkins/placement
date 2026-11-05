@@ -96,6 +96,12 @@ function Card({ t }: { t: TrackerItem }) {
         {STAGE_LABEL[t.stage]} since {ukDate(t.stage_changed_at)}
         {t.follow_up_on ? <> · <span className={due ? 'font-semibold text-amber-800' : ''}>follow up {ukDate(t.follow_up_on)}</span></> : null}
       </p>
+      <p className="flex gap-3 text-xs">
+        <Link href={`/account/drafts/new?company=${t.company_id}&purpose=${t.stage === 'contacted' ? 'follow_up' : 'placement'}`}
+          className="text-brand-700 underline">
+          {t.stage === 'contacted' ? 'Draft a follow-up' : 'Draft a message'}
+        </Link>
+      </p>
       <details>
         <summary className="cursor-pointer text-xs text-brand-700 underline">Update</summary>
         <form action={updateItem} className="mt-2 grid gap-2">

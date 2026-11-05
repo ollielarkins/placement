@@ -15,7 +15,7 @@
     "import:seed": "tsx scripts/seed/import-seed.ts",
     "import:vacancies": "tsx scripts/vacancies/import-vacancies.ts",
     "crawl:contacts": "tsx scripts/contacts/crawl-contacts.ts",
-    "test:scripts": "tsx --test scripts/**/*.test.ts",
+    "test:scripts": "tsx --test scripts/**/*.test.ts supabase/functions/**/*.test.ts",
     "colleges:link": "tsx scripts/colleges/link-from-evidence.ts",
     "crawl:contacts:loop": "tsx scripts/contacts/run-until-done.ts"
   },

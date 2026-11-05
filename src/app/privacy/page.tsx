@@ -48,7 +48,18 @@ export default function PrivacyPage() {
           <li>anything you add later: your T Level and specialism, your college, the first half of your postcode, how far you’ll travel, target companies and your shortlist with its notes.</li>
         </ul>
         <p>Your account uses cookies that keep you signed in. They’re needed for sign-in to work and aren’t used for anything else.</p>
-        <p>We’ll update this notice before adding anything new, such as help drafting messages to employers.</p>
+        <p>We’ll update this notice before adding anything new.</p>
+      </Section>
+
+      <Section title="Help drafting messages">
+        <p>
+          If you ask for a draft message to an employer, we send Claude (an AI made by Anthropic) only what the message
+          needs: your T Level, specialism, college, placement dates and pattern, interests, skills and your “about you”
+          text, plus what we know about the company. Never your email address, name or postcode. Anthropic processes it
+          in the USA to write the draft and does not use it to train its models. [Transfer safeguard for the USA: to
+          confirm before launch.] The draft is saved to your account until you delete it. You send any message
+          yourself.
+        </p>
       </Section>
 
       <Section title="Who handles the data for us">
@@ -58,6 +69,7 @@ export default function PrivacyPage() {
           <li>Google: only if you choose “Continue with Google”.</li>
           <li>Mapbox: draws the map. Your browser loads map images from Mapbox directly.</li>
           <li>postcodes.io: receives only the first half of a postcode.</li>
+          <li>Anthropic: writes draft messages, only when you ask for one (see above).</li>
         </ul>
       </Section>
 
