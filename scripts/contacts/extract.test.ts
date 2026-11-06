@@ -179,3 +179,23 @@ test('linkedin: company pages only, normalised, one per site', async () => {
   const amb = extractContacts('<body><a href="https://linkedin.com/company/foo">A</a><a href="https://linkedin.com/company/bar">W</a></body>', 'https://acme.co.uk/');
   assert.equal(amb.filter((c) => c.kind === 'linkedin').length, 0);
 });
+
+test('domain list: name words plus filler only, each word once', async () => {
+  const { domainFits, domainNameMatchable, pageHasNamePhrase, splitHost, brandWord } = await import('./extract.ts');
+  const { parseReversed } = await import('./domain-candidates.ts');
+  assert.equal(brandWord('EARTHMILL MAINTENANCE LIMITED'), 'earthmill');
+  assert.equal(brandWord('AUTOMOTIVE GROUP LIMITED'), null);
+  assert.ok(domainFits('earthmill-uk', 'EARTHMILL MAINTENANCE LIMITED')?.full);
+  assert.equal(domainFits('earthmillpizza', 'EARTHMILL MAINTENANCE LIMITED'), null);
+  assert.equal(domainFits('powell-powell', 'POWELL (UK) LIMITED'), null);
+  assert.ok(domainNameMatchable('promethean-group', 'com', 'PROMETHEAN LIMITED'));
+  assert.ok(!domainNameMatchable('helvar', 'net', 'HELVAR LIMITED'));
+  assert.ok(!domainNameMatchable('stahlcranes', 'com', 'STAHL CRANESYSTEMS LIMITED')); // doesn't use every word
+  const filler = 'We make things. '.repeat(20);
+  assert.ok(pageHasNamePhrase(`<body>Welcome to Aston Heating. ${filler}</body>`, 'ASTON HEATING LIMITED'));
+  assert.ok(!pageHasNamePhrase(`<body>Aston & Co, heating engineers. ${filler}</body>`, 'ASTON HEATING LIMITED'));
+  assert.deepEqual(splitHost('www.earthmill-uk.co.uk'), { label: 'earthmill-uk', tld: 'co.uk' });
+  assert.deepEqual(parseReversed('uk.co.earthmill'), { label: 'earthmill', tld: 'co.uk' });
+  assert.deepEqual(parseReversed('com.acme'), { label: 'acme', tld: 'com' });
+  assert.equal(parseReversed('com.blogspot.acme'), null);
+});

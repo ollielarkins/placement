@@ -8,6 +8,9 @@
 //      registered office postcode; failing that, a "name match" (full-name
 //      address, distinctive name, page names the company, no other company's
 //      number) is kept and labelled not confirmed. See extract.ts.
+//      Domains from Common Crawl's domain list (npm run domains:candidates)
+//      are tried after the guesses, under the same rules (stricter for name
+//      matches).
 //   2. Read the home page, up to two contact pages and two careers pages.
 //   3. Keep organisation routes only: role mailboxes on the company's own
 //      domain, non-mobile phone numbers, contact/careers/apply pages. The
@@ -35,11 +38,15 @@ import {
   dedupe,
   extractContacts,
   interestingLinks,
+  domainNameMatchable,
+  hostOf,
   isDistinctiveName,
   isFullNameHost,
   matchIdentity,
+  pageHasNamePhrase,
   pageNamesCompany,
   showsOtherCompanyNumber,
+  splitHost,
   mentionsName,
   type FoundContact,
   type Match,
@@ -78,7 +85,10 @@ async function crawlOne(f: PoliteFetcher, job: Job): Promise<Result> {
   // 1. Known websites.
   const known: { url: string; how: 'curated' | 'vacancy_advert' }[] = [];
   if (job.website) known.push({ url: job.website, how: 'curated' });
-  for (const c of job.candidates) known.push({ url: c.url, how: c.origin === 'faa_vacancy' ? 'vacancy_advert' : 'curated' });
+  for (const c of job.candidates) {
+    if (c.origin === 'domain_list') continue; // real domains, but still to be confirmed (step 2)
+    known.push({ url: c.url, how: c.origin === 'faa_vacancy' ? 'vacancy_advert' : 'curated' });
+  }
 
   let home: Page | null = null;
   let matched: Result['matched_on'] = null;
@@ -97,7 +107,14 @@ async function crawlOne(f: PoliteFetcher, job: Job): Promise<Result> {
     const distinctive = isDistinctiveName(job.name);
     let fallback: Page | null = null; // first name-match site, used only if nothing confirms
     if (!id.chNumber && !id.postcodes.length) return { state: 'no_site', site: null, matched_on: null, confidence: 'confirmed', contacts: [] };
-    for (const host of candidateHosts(job.name)) {
+    // Guesses first (the full name is the likeliest address), then domains
+    // from Common Crawl's list that read as the company's name (domain-candidates.ts).
+    const guessed = candidateHosts(job.name);
+    const listed = job.candidates
+      .filter((c) => c.origin === 'domain_list')
+      .map((c) => hostOf(c.url))
+      .filter((h): h is string => !!h && !guessed.includes(h));
+    for (const host of [...guessed, ...listed]) {
       if (!(await f.resolves(host))) continue;
       const page = (await f.get(`https://www.${host}/`)) ?? (await f.get(`https://${host}/`));
       if (!page) continue;
@@ -115,8 +132,13 @@ async function crawlOne(f: PoliteFetcher, job: Job): Promise<Result> {
         matched = m;
         break;
       }
-      if (!fallback && distinctive && isFullNameHost(host, job.name) && pageNamesCompany(page.html, job.name)
-          && !showsOtherCompanyNumber(page.html, job.ch_number)) fallback = page;
+      if (!fallback && distinctive && pageNamesCompany(page.html, job.name) && !showsOtherCompanyNumber(page.html, job.ch_number)) {
+        const split = splitHost(host);
+        const ok = guessed.includes(host)
+          ? isFullNameHost(host, job.name)
+          : !!split && domainNameMatchable(split.label, split.tld, job.name) && pageHasNamePhrase(page.html, job.name);
+        if (ok) fallback = page;
+      }
     }
     if (!home && fallback) {
       home = fallback;

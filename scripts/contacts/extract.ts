@@ -182,6 +182,172 @@ export function showsOtherCompanyNumber(html: string, chNumber: string | null): 
 }
 
 // ---------------------------------------------------------------------------
+// Real domains (Common Crawl's list of registered domains)
+// ---------------------------------------------------------------------------
+
+// nameTokens is called tens of millions of times by the domain-list scan.
+const tokenCache = new Map<string, string[]>();
+function cachedTokens(name: string): string[] {
+  let t = tokenCache.get(name);
+  if (!t) {
+    if (tokenCache.size > 200_000) tokenCache.clear();
+    t = nameTokens(name);
+    tokenCache.set(name, t);
+  }
+  return t;
+}
+
+/** The word a company's domain most likely starts with, or null if none is distinctive. */
+export function brandWord(name: string): string | null {
+  return (
+    cachedTokens(name).find(
+      (w) => w.length >= 4 && !GENERIC.has(w) && !COMMON_FIRST.has(w) && !INDUSTRY.has(w) && !/^\d+$/.test(w),
+    ) ?? null
+  );
+}
+
+// Words companies add to their domain that aren't in their registered name.
+const DOMAIN_FILLER = ['uk', 'gb', 'ltd', 'limited', 'group', 'co', 'plc', 'global', 'intl', 'international', 'eng',
+  'engineering', 'online', 'hq', 'the', 'and', 'services', 'solutions', 'systems', 'europe', 'england', 'britain'];
+
+export interface DomainFit {
+  /** Uses every distinctive word of the name: eligible for a name match. */
+  full: boolean;
+  /** Share of the label made of the company's own name words (0-1). */
+  cover: number;
+}
+
+/**
+ * Can this domain label be read entirely as the company's name words (or
+ * prefixes of them, at least 3 letters) plus common filler such as "uk",
+ * "ltd" or "group"? It must contain the brand word in full.
+ * "earthmill-uk" fits "Earthmill Maintenance"; "earthmillpizza" doesn't.
+ */
+export function domainFits(label: string, name: string): DomainFit | null {
+  const brand = brandWord(name);
+  if (!brand) return null;
+  const s = label.toLowerCase().replace(/-/g, '');
+  if (!/^[a-z0-9]+$/.test(s) || !s.includes(brand)) return null;
+  if (!quickFit(name, s)) return null;
+  const tokens = cachedTokens(name).filter((w) => w !== 'and');
+  const pieces: { text: string; own: string | null }[] = [];
+  for (const t of tokens) {
+    pieces.push({ text: t, own: t });
+    for (let n = 3; n < t.length; n++) pieces.push({ text: t.slice(0, n), own: t });
+  }
+  for (const f of DOMAIN_FILLER) pieces.push({ text: f, own: null });
+  // Fewest pieces, then most own-name letters (small DP over the label).
+  type Best = { parts: number; ownLen: number; used: Set<string>; fullWords: Set<string> } | null;
+  const best: Best[] = new Array(s.length + 1).fill(null);
+  best[0] = { parts: 0, ownLen: 0, used: new Set(), fullWords: new Set() };
+  for (let i = 0; i < s.length; i++) {
+    const b = best[i];
+    if (!b) continue;
+    for (const p of pieces) {
+      if (!s.startsWith(p.text, i)) continue;
+      if (p.own && b.used.has(p.own)) continue; // each name word once ("powell-powell" doesn't fit)
+      const j = i + p.text.length;
+      const cand = {
+        parts: b.parts + 1,
+        ownLen: b.ownLen + (p.own ? p.text.length : 0),
+        used: p.own ? new Set([...b.used, p.own]) : b.used,
+        fullWords: p.own && p.text === p.own ? new Set([...b.fullWords, p.own]) : b.fullWords,
+      };
+      const cur = best[j];
+      if (!cur || cand.ownLen > cur.ownLen || (cand.ownLen === cur.ownLen && cand.parts < cur.parts)) best[j] = cand;
+    }
+  }
+  const end = best[s.length];
+  if (!end || !end.fullWords.has(brand)) return null;
+  const distinctive = tokens.filter((w) => !GENERIC.has(w) && !INDUSTRY.has(w) && !SUFFIXES.has(w));
+  return { full: distinctive.every((w) => end.fullWords.has(w)), cover: end.ownLen / s.length };
+}
+
+const DOMAIN_TLDS = ['co.uk', 'org.uk', 'uk', 'com', 'net'] as const;
+
+/** "earthmill-uk.co.uk" -> { label: "earthmill-uk", tld: "co.uk" } for the TLDs we use. */
+export function splitHost(host: string): { label: string; tld: string } | null {
+  const h = host.toLowerCase().replace(/^www\./, '');
+  for (const tld of DOMAIN_TLDS) {
+    if (h.endsWith(`.${tld}`)) {
+      const label = h.slice(0, -tld.length - 1);
+      return /^[a-z0-9-]+$/.test(label) ? { label, tld } : null;
+    }
+  }
+  return null;
+}
+
+/** Hostname of a URL or bare host, without www. */
+export function hostOf(url: string): string | null {
+  try {
+    return new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+// Fast pre-filter for domainFits: the label must be made of name words,
+// their prefixes and filler (looser than the full check, which also needs the
+// brand word whole and each word once). Cached per name: the domain-list
+// scan calls this tens of millions of times.
+const quickCache = new Map<string, { parts: Set<string>; max: number }>();
+function quickFit(name: string, s: string): boolean {
+  let q = quickCache.get(name);
+  if (!q) {
+    const parts = new Set<string>(DOMAIN_FILLER);
+    for (const t of cachedTokens(name)) for (let n = 3; n <= t.length; n++) parts.add(t.slice(0, n));
+    q = { parts, max: Math.max(...[...parts].map((p) => p.length)) };
+    if (quickCache.size > 200_000) quickCache.clear();
+    quickCache.set(name, q);
+  }
+  return composable(s, q.parts, q.max);
+}
+
+/** Can s be split entirely into strings from parts? Linear in s's length. */
+export function composable(s: string, parts: Set<string>, max: number): boolean {
+  const reach = new Uint8Array(s.length + 1);
+  reach[0] = 1;
+  for (let i = 0; i < s.length; i++) {
+    if (!reach[i]) continue;
+    for (let n = 2; n <= max && i + n <= s.length; n++) if (parts.has(s.slice(i, i + n))) reach[i + n] = 1;
+  }
+  return reach[s.length] === 1;
+}
+
+/** Name-word prefixes (3+ letters) plus domain filler: what composable() checks against. */
+export function domainParts(name: string): string[] {
+  const parts = [...DOMAIN_FILLER];
+  for (const t of cachedTokens(name)) for (let n = 3; n <= t.length; n++) parts.push(t.slice(0, n));
+  return parts;
+}
+
+const SINGLE_WORD_FILLER = /^(uk|gb|ltd|limited|group|plc)?$/;
+
+/**
+ * Stricter test before a domain from the list can be a name match (no
+ * company number or postcode on the site): it must use every distinctive
+ * word, and a one-word name may only add "uk", "ltd", "group" and the like,
+ * and not on .net.
+ */
+export function domainNameMatchable(label: string, tld: string, name: string): boolean {
+  const fit = domainFits(label, name);
+  if (!fit?.full) return false;
+  const words = nameTokens(name).filter((w) => w !== 'and');
+  if (words.length > 1) return true;
+  const rest = label.toLowerCase().replace(/-/g, '').replace(words[0]!, '');
+  return tld !== 'net' && SINGLE_WORD_FILLER.test(rest) && label.toLowerCase().replace(/-/g, '').startsWith(words[0]!);
+}
+
+/** The page has the company's name as a phrase ("aston heating"), not just the words somewhere. */
+export function pageHasNamePhrase(html: string, name: string): boolean {
+  const $ = cheerio.load(html);
+  $('script, style, noscript, svg').remove();
+  const text = ` ${$('title').text()} ${$('body').text()} `.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ');
+  const words = nameTokens(name);
+  return words.length > 0 && text.includes(` ${words.join(' ')} `);
+}
+
+// ---------------------------------------------------------------------------
 // Contacts
 // ---------------------------------------------------------------------------
 
