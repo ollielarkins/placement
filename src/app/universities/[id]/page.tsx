@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { SaveCourseButton } from '@/components/SaveButton';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { ukDate } from '@/lib/format';
-import { LEAGUE_TABLES, NATIONS, SUBJECT_GROUPS, TLEVEL_STATUS, rankText, uniCourseDetail, type CourseDetail } from '@/lib/opportunities';
+import { CUG_NAME, LEAGUE_TABLES, NATIONS, SUBJECT_GROUPS, TLEVEL_STATUS, rankText, uniCourseDetail, type CourseDetail } from '@/lib/opportunities';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -162,11 +162,49 @@ function Rankings({ c }: { c: CourseDetail }) {
     ['Median graduate salary', c.median_salary != null ? `£${c.median_salary.toLocaleString('en-GB')}` : null],
   ];
   const shown = measures.filter(([, v]) => v);
+  const g = c.cug;
+  const gSubj = g ? rankText(g.subject_position, g.subject_of, g.subject_tied) : null;
+  const gUni = g ? rankText(g.overall_position, g.overall_of, g.overall_tied) : null;
   return (
     <section aria-labelledby="rank" className="grid gap-3">
       <h2 id="rank" className="text-xl font-bold">
         How it ranks
       </h2>
+      {gSubj || gUni ? (
+        <div className="grid gap-2 border-2 border-ink bg-volt p-4 shadow-hard">
+          <h3 className="text-sm font-bold uppercase tracking-wide">
+            {CUG_NAME} {g!.edition}
+          </h3>
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {gSubj && g!.subject_label ? (
+              <div className="grid content-start gap-1">
+                <dt className="text-xs font-semibold uppercase tracking-wide">{g!.subject_label}</dt>
+                <dd className="display text-2xl">{gSubj}</dd>
+                {g!.subject_url ? (
+                  <dd className="text-xs">
+                    <a href={g!.subject_url} rel="noopener noreferrer nofollow" target="_blank" className="font-semibold underline">
+                      See the full subject table
+                    </a>
+                  </dd>
+                ) : null}
+              </div>
+            ) : null}
+            {gUni ? (
+              <div className="grid content-start gap-1">
+                <dt className="text-xs font-semibold uppercase tracking-wide">{u.name}, overall</dt>
+                <dd className="display text-2xl">{gUni}</dd>
+                <dd className="text-xs">
+                  <a href={g!.overall_url} rel="noopener noreferrer nofollow" target="_blank" className="font-semibold underline">
+                    See the full university table
+                  </a>
+                </dd>
+              </div>
+            ) : null}
+          </dl>
+          <p className="text-xs">Positions from the {CUG_NAME} {g!.edition}, used with permission.</p>
+        </div>
+      ) : null}
+      <h3 className="text-sm font-bold uppercase tracking-wide text-slate-600">Our open-data rank</h3>
       <dl className="grid gap-3 sm:grid-cols-3">
         <div className="grid content-start gap-1 border-2 border-ink bg-white p-4">
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{c.subject_label ?? 'Subject'}</dt>
@@ -174,7 +212,7 @@ function Rankings({ c }: { c: CourseDetail }) {
           <dd className="text-xs text-slate-600">
             {subj ? 'Among UK providers teaching this subject.' : 'Too few providers or too little data to rank fairly.'}
           </dd>
-          {c.subject_league_table_url ? (
+          {c.subject_league_table_url && !gSubj ? (
             <dd className="text-xs">
               <a href={c.subject_league_table_url} rel="noopener noreferrer nofollow" target="_blank" className="font-semibold underline">
                 See {u.name} in the Complete University Guide {c.subject_label?.toLowerCase()} table

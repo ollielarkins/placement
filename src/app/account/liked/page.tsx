@@ -5,7 +5,7 @@ import { SaveButton, SaveCourseButton } from '@/components/SaveButton';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { requireUser, sessionDb } from '@/lib/auth/session';
 import { displayName, ukDate } from '@/lib/format';
-import { LEVEL_LABEL, rankText, type TLevelStatus } from '@/lib/opportunities';
+import { LEVEL_LABEL, rankText, type CugPositions, type TLevelStatus } from '@/lib/opportunities';
 import { removeLike } from './actions';
 
 export const metadata: Metadata = { title: 'Liked' };
@@ -28,6 +28,7 @@ interface Liked {
     overall_rank_of: number | null;
     overall_rank_tied: boolean | null;
     tef_overall: string | null;
+    cug: CugPositions | null;
     shortlisted: boolean;
   }[];
   vacancies: {
@@ -115,6 +116,21 @@ export default async function LikedPage() {
             <Row key={c.id} type="course" id={c.id} action={<SaveCourseButton courseId={c.id} compact />}>
               <Link href={`/universities/${c.id}`} className="font-bold hover:underline">{c.title}</Link>
               <p className="text-sm text-slate-600">{[c.university, c.qualification].filter(Boolean).join(' · ')}</p>
+              {c.cug ? (
+                <p className="text-xs font-semibold">
+                  {[
+                    c.cug.subject_label && rankText(c.cug.subject_position, c.cug.subject_of, c.cug.subject_tied)
+                      ? `${c.cug.subject_label}: ${rankText(c.cug.subject_position, c.cug.subject_of, c.cug.subject_tied)}`
+                      : null,
+                    rankText(c.cug.overall_position, c.cug.overall_of, c.cug.overall_tied)
+                      ? `overall: ${rankText(c.cug.overall_position, c.cug.overall_of, c.cug.overall_tied)}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}{' '}
+                  (Complete University Guide {c.cug.edition})
+                </p>
+              ) : null}
               <p className="text-xs font-semibold text-cobalt">
                 {[
                   c.subject_label && rankText(c.subject_rank, c.subject_rank_of, c.subject_rank_tied)

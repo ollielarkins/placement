@@ -7,6 +7,8 @@ import { SaveCourseButton } from '@/components/SaveButton';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { miles } from '@/lib/format';
 import {
+  CUG_NAME,
+  CUG_URL,
   NATIONS,
   STATUS_ORDER,
   SUBJECT_GROUPS,
@@ -83,6 +85,7 @@ export default async function UniversitiesPage({ searchParams }: Props) {
                   tone: r.tlevel_status === 'accepted' ? 'volt' : r.tlevel_status === 'accepted_with_maths' ? 'cobalt' : r.tlevel_status === 'not_accepted' ? 'ink' : 'plain',
                 },
                 chips: [
+                  ...cugLines(r),
                   ...rankLines(r),
                   r.russell_group ? 'Russell Group' : null,
                   r.foundation_year ? 'Foundation year available' : null,
@@ -113,8 +116,11 @@ export default async function UniversitiesPage({ searchParams }: Props) {
           ) : null}
           <p className="text-xs text-slate-500">
             Courses: Discover Uni dataset (HESA and the Office for Students), CC BY 4.0. T Level list: Department for Education,
-            Open Government Licence v3.0. T Level wording read from each course page. Rankings are our own, from Discover Uni
-            open data (not a published league table); each course page shows how they work.
+            Open Government Licence v3.0. T Level wording read from each course page. League table positions (CUG 2027):{' '}
+            <a href={CUG_URL} rel="noopener noreferrer nofollow" target="_blank" className="underline">
+              {CUG_NAME} 2027
+            </a>
+            , used with permission. &ldquo;Our rank&rdquo; is worked out from Discover Uni open data; each course page shows how.
           </p>
         </section>
       </div>
@@ -122,18 +128,29 @@ export default async function UniversitiesPage({ searchParams }: Props) {
   );
 }
 
-/** "Uni 12th of 207", "Electrical and electronic engineering 3rd of 100", "TEF Gold". */
+/** Complete University Guide positions (published with permission), credited in the chip. */
+function cugLines(r: CourseRow): string[] {
+  const subj = rankText(r.cug_subject_position, r.cug_subject_of, r.cug_subject_tied);
+  const uni = rankText(r.cug_overall_position, r.cug_overall_of, r.cug_overall_tied);
+  return [
+    subj && r.cug_subject_label ? `CUG 2027 · ${r.cug_subject_label}: ${subj}` : null,
+    uni ? `CUG 2027 · Overall: ${uni}` : null,
+  ].filter((x): x is string => !!x);
+}
+
+/** Our open-data ranks and the TEF rating. */
 function rankLines(r: CourseRow): string[] {
   const uni = rankText(r.overall_rank, r.overall_rank_of, r.overall_rank_tied);
   const subj = rankText(r.subject_rank, r.subject_rank_of, r.subject_rank_tied);
   return [
-    subj && r.subject_label ? `${r.subject_label}: ${subj}` : null,
-    uni ? `University: ${uni}` : null,
+    subj && r.subject_label ? `Our rank · ${r.subject_label}: ${subj}` : null,
+    uni ? `Our rank · University: ${uni}` : null,
     r.tef_overall ? `TEF ${r.tef_overall}` : null,
   ].filter((x): x is string => !!x);
 }
 
 function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }) {
+  const cug = cugLines(r);
   const ranks = rankLines(r);
   const extras = [r.foundation_year ? 'Foundation year available' : null, r.sandwich_year ? 'Placement year available' : null].filter(Boolean);
   return (
@@ -154,8 +171,13 @@ function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }
         </div>
         <SaveCourseButton courseId={r.id} compact />
       </div>
-      {ranks.length ? (
+      {cug.length || ranks.length ? (
         <ul aria-label="Rankings" className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
+          {cug.map((x) => (
+            <li key={x} className="border-2 border-ink bg-volt px-2 py-0.5">
+              {x}
+            </li>
+          ))}
           {ranks.map((x) => (
             <li key={x} className="border-2 border-cobalt px-2 py-0.5 text-cobalt">
               {x}
@@ -219,7 +241,7 @@ function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
         {s.dfe ? <input type="hidden" name="dfe" value="1" /> : null}
         {s.russell ? <input type="hidden" name="rg" value="1" /> : null}
         {s.fy ? <input type="hidden" name="fy" value={s.fy} /> : null}
-        {s.sort === 'rank' ? <input type="hidden" name="sort" value="rank" /> : null}
+        {s.sort !== 'default' ? <input type="hidden" name="sort" value={s.sort} /> : null}
         <label className="grid gap-1">
           <span className="font-medium">Your postcode</span>
           <input name="postcode" autoComplete="postal-code" defaultValue={s.oc ?? ''} placeholder="e.g. MK45" className="border-2 border-ink px-2 py-1" />
@@ -285,7 +307,8 @@ function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
           <span className="font-medium">Order</span>
           <select name="sort" defaultValue={s.sort} className="border-2 border-ink px-2 py-1">
             <option value="default">T Level entry first</option>
-            <option value="rank">Best ranked first</option>
+            <option value="cug">{CUG_NAME} position</option>
+            <option value="rank">Our open-data rank</option>
           </select>
         </label>
         <label className="grid gap-1">

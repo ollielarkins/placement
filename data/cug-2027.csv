@@ -1,0 +1,427 @@
+table,cah,position,tied,table_size,ukprn,cug_name
+Computer Science,CAH11-01-01,1,0,118,10003270,Imperial College London
+Computer Science,CAH11-01-01,2,0,118,10007788,University of Cambridge
+Computer Science,CAH11-01-01,3,0,118,10007774,University of Oxford
+Computer Science,CAH11-01-01,4,0,118,10007803,University of St Andrews
+Computer Science,CAH11-01-01,5,0,118,10007163,University of Warwick
+Computer Science,CAH11-01-01,6,0,118,10006840,University of Birmingham
+Computer Science,CAH11-01-01,7,0,118,10007784,UCL (University College London)
+Computer Science,CAH11-01-01,8,0,118,10007143,Durham University
+Computer Science,CAH11-01-01,9,0,118,10007798,University of Manchester
+Computer Science,CAH11-01-01,10,0,118,10007850,University of Bath
+Computer Science,CAH11-01-01,11,0,118,10007786,University of Bristol
+Computer Science,CAH11-01-01,12,0,118,10007158,University of Southampton
+Computer Science,CAH11-01-01,13,0,118,10007790,The University of Edinburgh
+Computer Science,CAH11-01-01,14,0,118,10003645,"King's College London, University o..."
+Computer Science,CAH11-01-01,15,0,118,10007157,University of Sheffield
+Computer Science,CAH11-01-01,16,0,118,10007794,University of Glasgow
+Computer Science,CAH11-01-01,17,0,118,10007792,University of Exeter
+Computer Science,CAH11-01-01,18,0,118,10007154,University of Nottingham
+Computer Science,CAH11-01-01,19,0,118,10004113,Loughborough University
+Computer Science,CAH11-01-01,20,0,118,10007775,Queen Mary University of London
+Computer Science,CAH11-01-01,21,0,118,10005343,Queen's University Belfast
+Computer Science,CAH11-01-01,22,0,118,10007167,University of York
+Computer Science,CAH11-01-01,23,0,118,10007795,University of Leeds
+Computer Science,CAH11-01-01,24,0,118,10007768,Lancaster University
+Computer Science,CAH11-01-01,25,0,118,10007814,Cardiff University
+Computer Science,CAH11-01-01,26,0,118,10007160,University of Surrey
+Computer Science,CAH11-01-01,27,0,118,10007799,Newcastle University
+Computer Science,CAH11-01-01,28,0,118,10006842,University of Liverpool
+Computer Science,CAH11-01-01,29,0,118,10005553,"Royal Holloway, University of Londo..."
+Computer Science,CAH11-01-01,30,0,118,10007796,University of Leicester
+Computer Science,CAH11-01-01,31,0,118,10007855,Swansea University
+Computer Science,CAH11-01-01,32,0,118,10007783,University of Aberdeen
+Computer Science,CAH11-01-01,33,0,118,10007805,University of Strathclyde
+Computer Science,CAH11-01-01,34,0,118,10007852,University of Dundee
+Computer Science,CAH11-01-01,35,0,118,10007806,University of Sussex
+Computer Science,CAH11-01-01,36,0,118,10007789,University of East Anglia UEA
+Computer Science,CAH11-01-01,37,0,118,10007764,Heriot-Watt University
+Computer Science,CAH11-01-01,38,0,118,10007150,University of Kent
+Computer Science,CAH11-01-01,39,0,118,10007802,University of Reading
+Computer Science,CAH11-01-01,40,0,118,10007759,"Aston University, Birmingham"
+Computer Science,CAH11-01-01,41,0,118,10007857,Bangor University
+Computer Science,CAH11-01-01,42,0,118,10007807,Ulster University
+Computer Science,CAH11-01-01,43,0,118,10007804,University of Stirling
+Computer Science,CAH11-01-01,44,0,118,10001478,"City St George's, University of Lon..."
+Computer Science,CAH11-01-01,45,0,118,10007856,Aberystwyth University
+Computer Science,CAH11-01-01,46,0,118,10007147,University of Hertfordshire
+Computer Science,CAH11-01-01,47,0,118,10001282,"Northumbria University, Newcastle"
+Computer Science,CAH11-01-01,48,0,118,10007151,University of Lincoln
+Computer Science,CAH11-01-01,49,0,118,10007149,University of Hull
+Computer Science,CAH11-01-01,50,0,118,10007148,University of Huddersfield
+Computer Science,CAH11-01-01,51,0,118,10007791,University of Essex
+Computer Science,CAH11-01-01,52,0,118,10007155,University of Portsmouth
+Computer Science,CAH11-01-01,53,0,118,10007823,Edge Hill University
+Computer Science,CAH11-01-01,54,0,118,10007767,Keele University
+Computer Science,CAH11-01-01,55,0,118,10008640,Falmouth University
+Computer Science,CAH11-01-01,56,0,118,10000961,Brunel University of London
+Computer Science,CAH11-01-01,57,0,118,10007849,Abertay University
+Computer Science,CAH11-01-01,58,0,118,10004180,Manchester Metropolitan University
+Computer Science,CAH11-01-01,59,0,118,10004797,Nottingham Trent University
+Computer Science,CAH11-01-01,60,0,118,10007787,University of Buckingham
+Computer Science,CAH11-01-01,61,0,118,10007762,Glasgow Caledonian University
+Computer Science,CAH11-01-01,62,0,118,10007139,University of Worcester
+Computer Science,CAH11-01-01,63,0,118,10006299,University of Staffordshire
+Computer Science,CAH11-01-01,64,0,118,10007164,"Bristol, UWE"
+Computer Science,CAH11-01-01,65,0,118,10004930,Oxford Brookes University
+Computer Science,CAH11-01-01,66,0,118,10000571,Bath Spa University
+Computer Science,CAH11-01-01,67,0,118,10007772,Edinburgh Napier University
+Computer Science,CAH11-01-01,68,0,118,10003614,University of Winchester
+Computer Science,CAH11-01-01,69,0,118,10007137,University of Chichester
+Computer Science,CAH11-01-01,70,0,118,10007162,University of the Arts London
+Computer Science,CAH11-01-01,71,0,118,10000824,Bournemouth University
+Computer Science,CAH11-01-01,72,0,118,10007801,University of Plymouth
+Computer Science,CAH11-01-01,73,0,118,10007161,Teesside University
+Computer Science,CAH11-01-01,74,0,118,10005790,Sheffield Hallam University
+Computer Science,CAH11-01-01,75,0,118,10005500,Robert Gordon University
+Computer Science,CAH11-01-01,76,0,118,10007851,University of Derby
+Computer Science,CAH11-01-01,77,0,118,10007785,University of Bradford
+Computer Science,CAH11-01-01,78,0,118,10003678,Kingston University
+Computer Science,CAH11-01-01,79,0,118,10004078,London South Bank University
+Computer Science,CAH11-01-01,80,0,118,10007159,University of Sunderland
+Computer Science,CAH11-01-01,81,0,118,10007848,University of Chester
+Computer Science,CAH11-01-01,82,0,118,10001883,De Montfort University
+Computer Science,CAH11-01-01,83,0,118,10000886,University of Brighton
+Computer Science,CAH11-01-01,84,0,118,10003957,Liverpool John Moores University
+Computer Science,CAH11-01-01,85,0,118,10007140,Birmingham City University
+Computer Science,CAH11-01-01,86,0,118,10003861,Leeds Beckett University
+Computer Science,CAH11-01-01,87,0,118,10007156,University of Salford
+Computer Science,CAH11-01-01,88,0,118,10001726,Coventry University
+Computer Science,CAH11-01-01,89,0,118,10007166,University of Wolverhampton
+Computer Science,CAH11-01-01,90,0,118,10007144,University of East London
+Computer Science,CAH11-01-01,91,0,118,10006427,University for the Creative Arts
+Computer Science,CAH11-01-01,92,0,118,10007793,University of South Wales
+Computer Science,CAH11-01-01,93,0,118,10003863,Leeds Trinity University
+Computer Science,CAH11-01-01,94,0,118,10002718,"Goldsmiths, University of London"
+Computer Science,CAH11-01-01,95,0,118,10003956,Liverpool Hope University
+Computer Science,CAH11-01-01,96,0,118,10006566,University of West London
+Computer Science,CAH11-01-01,97,0,118,10007141,University of Lancashire
+Computer Science,CAH11-01-01,98,0,118,10007138,University of Northampton
+Computer Science,CAH11-01-01,99,0,118,10007713,York St John University
+Computer Science,CAH11-01-01,100,0,118,10007145,University of Gloucestershire
+Computer Science,CAH11-01-01,101,0,118,10007854,Cardiff Metropolitan University
+Computer Science,CAH11-01-01,102,0,118,10007165,"University of Westminster, London"
+Computer Science,CAH11-01-01,103,0,118,10007832,Birmingham Newman University
+Computer Science,CAH11-01-01,104,0,118,10001143,Canterbury Christ Church University
+Computer Science,CAH11-01-01,105,0,118,10000291,Anglia Ruskin University
+Computer Science,CAH11-01-01,106,0,118,10007146,University of Greenwich
+Computer Science,CAH11-01-01,107,0,118,10004775,Norwich University of the Arts
+Computer Science,CAH11-01-01,108,0,118,10006022,"Southampton, Solent University"
+Computer Science,CAH11-01-01,109,0,118,10006841,University of Greater Manchester
+Computer Science,CAH11-01-01,110,0,118,10004048,London Metropolitan University
+Computer Science,CAH11-01-01,111,0,118,10014001,University of Suffolk
+Computer Science,CAH11-01-01,112,0,118,10007152,University of Bedfordshire
+Computer Science,CAH11-01-01,113,0,118,10004351,Middlesex University
+Computer Science,CAH11-01-01,114,0,118,10007800,University of the West of Scotland
+Computer Science,CAH11-01-01,115,0,118,10007858,University of Wales Trinity Saint D...
+Computer Science,CAH11-01-01,116,0,118,10000975,Bucks New University
+Computer Science,CAH11-01-01,117,0,118,10007776,University of Roehampton
+Computer Science,CAH11-01-01,118,0,118,10007833,Wrexham University
+Electrical and Electronic Engineering,CAH10-01-08,1,0,71,10007788,University of Cambridge
+Electrical and Electronic Engineering,CAH10-01-08,2,0,71,10003270,Imperial College London
+Electrical and Electronic Engineering,CAH10-01-08,3,0,71,10007774,University of Oxford
+Electrical and Electronic Engineering,CAH10-01-08,4,0,71,10007158,University of Southampton
+Electrical and Electronic Engineering,CAH10-01-08,5,0,71,10007798,University of Manchester
+Electrical and Electronic Engineering,CAH10-01-08,6,0,71,10007784,UCL (University College London)
+Electrical and Electronic Engineering,CAH10-01-08,7,0,71,10007157,University of Sheffield
+Electrical and Electronic Engineering,CAH10-01-08,8,0,71,10007794,University of Glasgow
+Electrical and Electronic Engineering,CAH10-01-08,9,0,71,10007792,University of Exeter
+Electrical and Electronic Engineering,CAH10-01-08,10,0,71,10007786,University of Bristol
+Electrical and Electronic Engineering,CAH10-01-08,11,0,71,10007795,University of Leeds
+Electrical and Electronic Engineering,CAH10-01-08,12,0,71,10005343,Queen's University Belfast
+Electrical and Electronic Engineering,CAH10-01-08,13,0,71,10007850,University of Bath
+Electrical and Electronic Engineering,CAH10-01-08,14,0,71,10007790,The University of Edinburgh
+Electrical and Electronic Engineering,CAH10-01-08,15,0,71,10007768,Lancaster University
+Electrical and Electronic Engineering,CAH10-01-08,16,0,71,10007154,University of Nottingham
+Electrical and Electronic Engineering,CAH10-01-08,17,0,71,10004113,Loughborough University
+Electrical and Electronic Engineering,CAH10-01-08,18,0,71,10007805,University of Strathclyde
+Electrical and Electronic Engineering,CAH10-01-08,19,0,71,10003645,"King's College London, University o..."
+Electrical and Electronic Engineering,CAH10-01-08,20,0,71,10007799,Newcastle University
+Electrical and Electronic Engineering,CAH10-01-08,21,0,71,10007147,University of Hertfordshire
+Electrical and Electronic Engineering,CAH10-01-08,22,0,71,10007857,Bangor University
+Electrical and Electronic Engineering,CAH10-01-08,23,0,71,10005553,"Royal Holloway, University of Londo..."
+Electrical and Electronic Engineering,CAH10-01-08,24,0,71,10007814,Cardiff University
+Electrical and Electronic Engineering,CAH10-01-08,25,0,71,10007160,University of Surrey
+Electrical and Electronic Engineering,CAH10-01-08,26,0,71,10006840,University of Birmingham
+Electrical and Electronic Engineering,CAH10-01-08,27,0,71,10007775,Queen Mary University of London
+Electrical and Electronic Engineering,CAH10-01-08,28,0,71,10007167,University of York
+Electrical and Electronic Engineering,CAH10-01-08,29,0,71,10007764,Heriot-Watt University
+Electrical and Electronic Engineering,CAH10-01-08,30,0,71,10006842,University of Liverpool
+Electrical and Electronic Engineering,CAH10-01-08,31,0,71,10007759,"Aston University, Birmingham"
+Electrical and Electronic Engineering,CAH10-01-08,32,0,71,10007146,University of Greenwich
+Electrical and Electronic Engineering,CAH10-01-08,33,0,71,10007807,Ulster University
+Electrical and Electronic Engineering,CAH10-01-08,34,0,71,10001282,"Northumbria University, Newcastle"
+Electrical and Electronic Engineering,CAH10-01-08,35,0,71,10007155,University of Portsmouth
+Electrical and Electronic Engineering,CAH10-01-08,36,0,71,10007855,Swansea University
+Electrical and Electronic Engineering,CAH10-01-08,37,0,71,10007156,University of Salford
+Electrical and Electronic Engineering,CAH10-01-08,38,0,71,10005500,Robert Gordon University
+Electrical and Electronic Engineering,CAH10-01-08,39,0,71,10001478,"City St George's, University of Lon..."
+Electrical and Electronic Engineering,CAH10-01-08,40,0,71,10007161,Teesside University
+Electrical and Electronic Engineering,CAH10-01-08,41,0,71,10007783,University of Aberdeen
+Electrical and Electronic Engineering,CAH10-01-08,42,0,71,10000886,University of Brighton
+Electrical and Electronic Engineering,CAH10-01-08,43,0,71,10004180,Manchester Metropolitan University
+Electrical and Electronic Engineering,CAH10-01-08,44,0,71,10007164,"Bristol, UWE"
+Electrical and Electronic Engineering,CAH10-01-08,45,0,71,10007762,Glasgow Caledonian University
+Electrical and Electronic Engineering,CAH10-01-08,46,0,71,10000961,Brunel University of London
+Electrical and Electronic Engineering,CAH10-01-08,47,0,71,10007150,University of Kent
+Electrical and Electronic Engineering,CAH10-01-08,48,0,71,10007791,University of Essex
+Electrical and Electronic Engineering,CAH10-01-08,49,0,71,10007151,University of Lincoln
+Electrical and Electronic Engineering,CAH10-01-08,50,0,71,10004078,London South Bank University
+Electrical and Electronic Engineering,CAH10-01-08,51,0,71,10005790,Sheffield Hallam University
+Electrical and Electronic Engineering,CAH10-01-08,52,0,71,10007148,University of Huddersfield
+Electrical and Electronic Engineering,CAH10-01-08,53,0,71,10003957,Liverpool John Moores University
+Electrical and Electronic Engineering,CAH10-01-08,54,0,71,10007851,University of Derby
+Electrical and Electronic Engineering,CAH10-01-08,55,0,71,10007793,University of South Wales
+Electrical and Electronic Engineering,CAH10-01-08,56,0,71,10007141,University of Lancashire
+Electrical and Electronic Engineering,CAH10-01-08,57,0,71,10007140,Birmingham City University
+Electrical and Electronic Engineering,CAH10-01-08,58,0,71,10001883,De Montfort University
+Electrical and Electronic Engineering,CAH10-01-08,59,0,71,10004797,Nottingham Trent University
+Electrical and Electronic Engineering,CAH10-01-08,60,0,71,10001726,Coventry University
+Electrical and Electronic Engineering,CAH10-01-08,61,0,71,10007772,Edinburgh Napier University
+Electrical and Electronic Engineering,CAH10-01-08,62,0,71,10003861,Leeds Beckett University
+Electrical and Electronic Engineering,CAH10-01-08,63,0,71,10007165,"University of Westminster, London"
+Electrical and Electronic Engineering,CAH10-01-08,64,0,71,10004351,Middlesex University
+Electrical and Electronic Engineering,CAH10-01-08,65,0,71,10007137,University of Chichester
+Electrical and Electronic Engineering,CAH10-01-08,66,0,71,10006841,University of Greater Manchester
+Electrical and Electronic Engineering,CAH10-01-08,67,0,71,10007159,University of Sunderland
+Electrical and Electronic Engineering,CAH10-01-08,68,0,71,10006566,University of West London
+Electrical and Electronic Engineering,CAH10-01-08,69,0,71,10004048,London Metropolitan University
+Electrical and Electronic Engineering,CAH10-01-08,70,0,71,10006022,"Southampton, Solent University"
+Electrical and Electronic Engineering,CAH10-01-08,71,0,71,10007854,Cardiff Metropolitan University
+Aeronautical and Aerospace Engineering,CAH10-01-04,1,0,33,10003270,Imperial College London
+Aeronautical and Aerospace Engineering,CAH10-01-04,2,0,33,10007158,University of Southampton
+Aeronautical and Aerospace Engineering,CAH10-01-04,3,0,33,10007786,University of Bristol
+Aeronautical and Aerospace Engineering,CAH10-01-04,4,0,33,10007157,University of Sheffield
+Aeronautical and Aerospace Engineering,CAH10-01-04,5,0,33,10007850,University of Bath
+Aeronautical and Aerospace Engineering,CAH10-01-04,6,0,33,10007154,University of Nottingham
+Aeronautical and Aerospace Engineering,CAH10-01-04,7,0,33,10007798,University of Manchester
+Aeronautical and Aerospace Engineering,CAH10-01-04,8,0,33,10005343,Queen's University Belfast
+Aeronautical and Aerospace Engineering,CAH10-01-04,9,0,33,10007794,University of Glasgow
+Aeronautical and Aerospace Engineering,CAH10-01-04,10,0,33,10007160,University of Surrey
+Aeronautical and Aerospace Engineering,CAH10-01-04,11,0,33,10007795,University of Leeds
+Aeronautical and Aerospace Engineering,CAH10-01-04,12,0,33,10006840,University of Birmingham
+Aeronautical and Aerospace Engineering,CAH10-01-04,13,0,33,10004113,Loughborough University
+Aeronautical and Aerospace Engineering,CAH10-01-04,14,0,33,10006842,University of Liverpool
+Aeronautical and Aerospace Engineering,CAH10-01-04,15,0,33,10007775,Queen Mary University of London
+Aeronautical and Aerospace Engineering,CAH10-01-04,16,0,33,10007855,Swansea University
+Aeronautical and Aerospace Engineering,CAH10-01-04,17,0,33,10007796,University of Leicester
+Aeronautical and Aerospace Engineering,CAH10-01-04,18,0,33,10000961,Brunel University of London
+Aeronautical and Aerospace Engineering,CAH10-01-04,19,0,33,10005790,Sheffield Hallam University
+Aeronautical and Aerospace Engineering,CAH10-01-04,20,0,33,10007164,"Bristol, UWE"
+Aeronautical and Aerospace Engineering,CAH10-01-04,21,0,33,10007156,University of Salford
+Aeronautical and Aerospace Engineering,CAH10-01-04,22,0,33,10001726,Coventry University
+Aeronautical and Aerospace Engineering,CAH10-01-04,23,0,33,10006299,University of Staffordshire
+Aeronautical and Aerospace Engineering,CAH10-01-04,24,0,33,10007141,University of Lancashire
+Aeronautical and Aerospace Engineering,CAH10-01-04,25,0,33,10007793,University of South Wales
+Aeronautical and Aerospace Engineering,CAH10-01-04,26,0,33,10003678,Kingston University
+Aeronautical and Aerospace Engineering,CAH10-01-04,27,0,33,10007147,University of Hertfordshire
+Aeronautical and Aerospace Engineering,CAH10-01-04,28,0,33,10001478,"City St George's, University of Lon..."
+Aeronautical and Aerospace Engineering,CAH10-01-04,29,0,33,10007166,University of Wolverhampton
+Aeronautical and Aerospace Engineering,CAH10-01-04,30,0,33,10007161,Teesside University
+Aeronautical and Aerospace Engineering,CAH10-01-04,31,0,33,10000886,University of Brighton
+Aeronautical and Aerospace Engineering,CAH10-01-04,32,0,33,10007800,University of the West of Scotland
+Aeronautical and Aerospace Engineering,CAH10-01-04,33,0,33,10001883,De Montfort University
+Mechanical Engineering,CAH10-01-02,1,0,74,10003270,Imperial College London
+Mechanical Engineering,CAH10-01-02,2,0,74,10007788,University of Cambridge
+Mechanical Engineering,CAH10-01-02,3,0,74,10007774,University of Oxford
+Mechanical Engineering,CAH10-01-02,4,0,74,10007157,University of Sheffield
+Mechanical Engineering,CAH10-01-02,5,0,74,10007850,University of Bath
+Mechanical Engineering,CAH10-01-02,6,0,74,10007786,University of Bristol
+Mechanical Engineering,CAH10-01-02,7,0,74,10007784,UCL (University College London)
+Mechanical Engineering,CAH10-01-02,8,0,74,10007795,University of Leeds
+Mechanical Engineering,CAH10-01-02,9,0,74,10007798,University of Manchester
+Mechanical Engineering,CAH10-01-02,10,0,74,10004113,Loughborough University
+Mechanical Engineering,CAH10-01-02,11,0,74,10007790,The University of Edinburgh
+Mechanical Engineering,CAH10-01-02,12,0,74,10006840,University of Birmingham
+Mechanical Engineering,CAH10-01-02,13,0,74,10005343,Queen's University Belfast
+Mechanical Engineering,CAH10-01-02,14,0,74,10007158,University of Southampton
+Mechanical Engineering,CAH10-01-02,15,0,74,10007154,University of Nottingham
+Mechanical Engineering,CAH10-01-02,16,0,74,10007794,University of Glasgow
+Mechanical Engineering,CAH10-01-02,17,0,74,10007805,University of Strathclyde
+Mechanical Engineering,CAH10-01-02,18,0,74,10007796,University of Leicester
+Mechanical Engineering,CAH10-01-02,19,0,74,10007764,Heriot-Watt University
+Mechanical Engineering,CAH10-01-02,20,0,74,10007160,University of Surrey
+Mechanical Engineering,CAH10-01-02,21,0,74,10007792,University of Exeter
+Mechanical Engineering,CAH10-01-02,22,0,74,10006842,University of Liverpool
+Mechanical Engineering,CAH10-01-02,23,0,74,10007768,Lancaster University
+Mechanical Engineering,CAH10-01-02,24,0,74,10007814,Cardiff University
+Mechanical Engineering,CAH10-01-02,25,0,74,10007783,University of Aberdeen
+Mechanical Engineering,CAH10-01-02,26,0,74,10007775,Queen Mary University of London
+Mechanical Engineering,CAH10-01-02,27,0,74,10007799,Newcastle University
+Mechanical Engineering,CAH10-01-02,28,0,74,10007852,University of Dundee
+Mechanical Engineering,CAH10-01-02,29,0,74,10007855,Swansea University
+Mechanical Engineering,CAH10-01-02,30,0,74,10007807,Ulster University
+Mechanical Engineering,CAH10-01-02,31,0,74,10006299,University of Staffordshire
+Mechanical Engineering,CAH10-01-02,32,0,74,10007759,"Aston University, Birmingham"
+Mechanical Engineering,CAH10-01-02,33,0,74,10007806,University of Sussex
+Mechanical Engineering,CAH10-01-02,34,0,74,10007164,"Bristol, UWE"
+Mechanical Engineering,CAH10-01-02,35,0,74,10001282,"Northumbria University, Newcastle"
+Mechanical Engineering,CAH10-01-02,36,0,74,10007801,University of Plymouth
+Mechanical Engineering,CAH10-01-02,37,0,74,10004797,Nottingham Trent University
+Mechanical Engineering,CAH10-01-02,38,0,74,10000886,University of Brighton
+Mechanical Engineering,CAH10-01-02,39,0,74,10005500,Robert Gordon University
+Mechanical Engineering,CAH10-01-02,40,0,74,10007147,University of Hertfordshire
+Mechanical Engineering,CAH10-01-02,41,0,74,10004078,London South Bank University
+Mechanical Engineering,CAH10-01-02,42,0,74,10007785,University of Bradford
+Mechanical Engineering,CAH10-01-02,43,0,74,10007151,University of Lincoln
+Mechanical Engineering,CAH10-01-02,44,0,74,10005790,Sheffield Hallam University
+Mechanical Engineering,CAH10-01-02,45,0,74,10004930,Oxford Brookes University
+Mechanical Engineering,CAH10-01-02,46,0,74,10000961,Brunel University of London
+Mechanical Engineering,CAH10-01-02,47,0,74,10007159,University of Sunderland
+Mechanical Engineering,CAH10-01-02,48,0,74,10007155,University of Portsmouth
+Mechanical Engineering,CAH10-01-02,49,0,74,10004180,Manchester Metropolitan University
+Mechanical Engineering,CAH10-01-02,50,0,74,10003957,Liverpool John Moores University
+Mechanical Engineering,CAH10-01-02,51,0,74,10007149,University of Hull
+Mechanical Engineering,CAH10-01-02,52,0,74,10000824,Bournemouth University
+Mechanical Engineering,CAH10-01-02,53,0,74,10007762,Glasgow Caledonian University
+Mechanical Engineering,CAH10-01-02,54,0,74,10007148,University of Huddersfield
+Mechanical Engineering,CAH10-01-02,55,0,74,10001726,Coventry University
+Mechanical Engineering,CAH10-01-02,56,0,74,10001478,"City St George's, University of Lon..."
+Mechanical Engineering,CAH10-01-02,57,0,74,10007137,University of Chichester
+Mechanical Engineering,CAH10-01-02,58,0,74,10007800,University of the West of Scotland
+Mechanical Engineering,CAH10-01-02,59,0,74,10007772,Edinburgh Napier University
+Mechanical Engineering,CAH10-01-02,60,0,74,10007144,University of East London
+Mechanical Engineering,CAH10-01-02,61,0,74,10007166,University of Wolverhampton
+Mechanical Engineering,CAH10-01-02,62,0,74,10007851,University of Derby
+Mechanical Engineering,CAH10-01-02,63,0,74,10007156,University of Salford
+Mechanical Engineering,CAH10-01-02,64,0,74,10007150,University of Kent
+Mechanical Engineering,CAH10-01-02,65,0,74,10007161,Teesside University
+Mechanical Engineering,CAH10-01-02,66,0,74,10007146,University of Greenwich
+Mechanical Engineering,CAH10-01-02,67,0,74,10007141,University of Lancashire
+Mechanical Engineering,CAH10-01-02,68,0,74,10001883,De Montfort University
+Mechanical Engineering,CAH10-01-02,69,0,74,10000291,Anglia Ruskin University
+Mechanical Engineering,CAH10-01-02,70,0,74,10007140,Birmingham City University
+Mechanical Engineering,CAH10-01-02,71,0,74,10003678,Kingston University
+Mechanical Engineering,CAH10-01-02,72,0,74,10006022,"Southampton, Solent University"
+Mechanical Engineering,CAH10-01-02,73,0,74,10001143,Canterbury Christ Church University
+Mechanical Engineering,CAH10-01-02,74,0,74,10006841,University of Greater Manchester
+University Rankings,,1,0,130,10007788,University of Cambridge
+University Rankings,,2,0,130,10007774,University of Oxford
+University Rankings,,3,0,130,10004063,London School of Economics and Poli...
+University Rankings,,4,0,130,10007803,University of St Andrews
+University Rankings,,5,0,130,10003270,Imperial College London
+University Rankings,,6,0,130,10007143,Durham University
+University Rankings,,7,0,130,10007163,University of Warwick
+University Rankings,,8,0,130,10004113,Loughborough University
+University Rankings,,9,0,130,10007850,University of Bath
+University Rankings,,10,0,130,10007768,Lancaster University
+University Rankings,,11,0,130,10007792,University of Exeter
+University Rankings,,12,0,130,10006840,University of Birmingham
+University Rankings,,13,1,130,10007157,University of Sheffield
+University Rankings,,13,1,130,10007784,UCL (University College London)
+University Rankings,,15,0,130,10007158,University of Southampton
+University Rankings,,16,0,130,10003645,"King's College London, University o..."
+University Rankings,,17,0,130,10007786,University of Bristol
+University Rankings,,18,0,130,10007795,University of Leeds
+University Rankings,,19,0,130,10007790,The University of Edinburgh
+University Rankings,,20,0,130,10007167,University of York
+University Rankings,,21,0,130,10007160,University of Surrey
+University Rankings,,22,0,130,10006842,University of Liverpool
+University Rankings,,23,0,130,10005343,Queen's University Belfast
+University Rankings,,24,0,130,10007798,University of Manchester
+University Rankings,,25,0,130,10007852,University of Dundee
+University Rankings,,26,0,130,10007154,University of Nottingham
+University Rankings,,27,1,130,10007814,Cardiff University
+University Rankings,,27,1,130,10007162,University of the Arts London
+University Rankings,,29,0,130,10007794,University of Glasgow
+University Rankings,,30,0,130,10007791,University of Essex
+University Rankings,,31,0,130,10007764,Heriot-Watt University
+University Rankings,,32,0,130,10007783,University of Aberdeen
+University Rankings,,33,0,130,10007796,University of Leicester
+University Rankings,,34,0,130,10007789,University of East Anglia UEA
+University Rankings,,35,0,130,10007799,Newcastle University
+University Rankings,,36,0,130,10007806,University of Sussex
+University Rankings,,37,0,130,10001282,"Northumbria University, Newcastle"
+University Rankings,,38,0,130,10040812,Harper Adams University
+University Rankings,,39,0,130,10007805,University of Strathclyde
+University Rankings,,40,0,130,10007775,Queen Mary University of London
+University Rankings,,41,0,130,10007855,Swansea University
+University Rankings,,42,0,130,10005553,"Royal Holloway, University of Londo..."
+University Rankings,,43,0,130,10007802,University of Reading
+University Rankings,,44,0,130,10014001,University of Suffolk
+University Rankings,,45,0,130,10004930,Oxford Brookes University
+University Rankings,,46,0,130,10004797,Nottingham Trent University
+University Rankings,,47,0,130,10007807,Ulster University
+University Rankings,,48,0,130,10000961,Brunel University of London
+University Rankings,,49,0,130,10007857,Bangor University
+University Rankings,,50,1,130,10007151,University of Lincoln
+University Rankings,,50,1,130,10007155,University of Portsmouth
+University Rankings,,52,0,130,10007759,"Aston University, Birmingham"
+University Rankings,,53,0,130,10004180,Manchester Metropolitan University
+University Rankings,,54,0,130,10007767,Keele University
+University Rankings,,55,0,130,10007804,University of Stirling
+University Rankings,,56,0,130,10007856,Aberystwyth University
+University Rankings,,57,0,130,10001726,Coventry University
+University Rankings,,58,0,130,10007823,Edge Hill University
+University Rankings,,59,0,130,10001478,"City St George's, University of Lon..."
+University Rankings,,60,0,130,10004775,Norwich University of the Arts
+University Rankings,,61,0,130,10002718,"Goldsmiths, University of London"
+University Rankings,,62,0,130,10007150,University of Kent
+University Rankings,,63,0,130,10007137,University of Chichester
+University Rankings,,64,0,130,10007149,University of Hull
+University Rankings,,65,0,130,10008640,Falmouth University
+University Rankings,,66,0,130,10007156,University of Salford
+University Rankings,,67,0,130,10007801,University of Plymouth
+University Rankings,,68,1,130,10007148,University of Huddersfield
+University Rankings,,68,1,130,10007159,University of Sunderland
+University Rankings,,70,0,130,10007147,University of Hertfordshire
+University Rankings,,71,0,130,10007851,University of Derby
+University Rankings,,72,1,130,10007854,Cardiff Metropolitan University
+University Rankings,,72,1,130,10000385,Arts University Bournemouth
+University Rankings,,74,0,130,10007164,"Bristol, UWE"
+University Rankings,,75,0,130,10005500,Robert Gordon University
+University Rankings,,76,0,130,10003957,Liverpool John Moores University
+University Rankings,,77,0,130,10000824,Bournemouth University
+University Rankings,,78,0,130,10007848,University of Chester
+University Rankings,,79,0,130,10007843,"St Mary's University, Twickenham"
+University Rankings,,80,0,130,10007139,University of Worcester
+University Rankings,,81,1,130,10005790,Sheffield Hallam University
+University Rankings,,81,1,130,10007772,Edinburgh Napier University
+University Rankings,,83,0,130,10003956,Liverpool Hope University
+University Rankings,,84,0,130,10006566,University of West London
+University Rankings,,85,0,130,10006427,University for the Creative Arts
+University Rankings,,86,0,130,10003861,Leeds Beckett University
+University Rankings,,87,0,130,10007161,Teesside University
+University Rankings,,88,0,130,10003678,Kingston University
+University Rankings,,89,0,130,10007762,Glasgow Caledonian University
+University Rankings,,90,0,130,10007141,University of Lancashire
+University Rankings,,91,0,130,10007793,University of South Wales
+University Rankings,,92,1,130,10000571,Bath Spa University
+University Rankings,,92,1,130,10001143,Canterbury Christ Church University
+University Rankings,,94,0,130,,SOAS University of London
+University Rankings,,95,0,130,10007140,Birmingham City University
+University Rankings,,96,0,130,10007144,University of East London
+University Rankings,,97,0,130,10003614,University of Winchester
+University Rankings,,98,1,130,10007145,University of Gloucestershire
+University Rankings,,98,1,130,10007785,University of Bradford
+University Rankings,,98,1,130,10007858,University of Wales Trinity Saint D...
+University Rankings,,101,0,130,10007166,University of Wolverhampton
+University Rankings,,102,1,130,,"Queen Margaret University, Edinburg..."
+University Rankings,,102,1,130,10007146,University of Greenwich
+University Rankings,,104,0,130,10000886,University of Brighton
+University Rankings,,105,0,130,10007849,Abertay University
+University Rankings,,106,0,130,10007152,University of Bedfordshire
+University Rankings,,107,0,130,10003854,Leeds Arts University
+University Rankings,,108,0,130,10007713,York St John University
+University Rankings,,109,0,130,,Royal Agricultural University
+University Rankings,,110,0,130,10001883,De Montfort University
+University Rankings,,111,0,130,10006299,University of Staffordshire
+University Rankings,,112,0,130,10004078,London South Bank University
+University Rankings,,113,0,130,10000291,Anglia Ruskin University
+University Rankings,,114,0,130,,Lincoln Bishop University
+University Rankings,,115,1,130,10007165,"University of Westminster, London"
+University Rankings,,115,1,130,10006022,"Southampton, Solent University"
+University Rankings,,117,0,130,10007842,University of Cumbria
+University Rankings,,118,0,130,10006841,University of Greater Manchester
+University Rankings,,119,0,130,10005127,Arts University Plymouth
+University Rankings,,120,0,130,10000975,Bucks New University
+University Rankings,,121,0,130,10007138,University of Northampton
+University Rankings,,122,0,130,10004351,Middlesex University
+University Rankings,,123,0,130,10007776,University of Roehampton
+University Rankings,,124,0,130,10007787,University of Buckingham
+University Rankings,,125,1,130,10003863,Leeds Trinity University
+University Rankings,,125,1,130,,Plymouth Marjon University
+University Rankings,,127,0,130,10007832,Birmingham Newman University
+University Rankings,,128,0,130,10007800,University of the West of Scotland
+University Rankings,,129,0,130,10004048,London Metropolitan University
+University Rankings,,130,0,130,10007833,Wrexham University
