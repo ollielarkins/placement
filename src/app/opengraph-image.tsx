@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 // The card shown when someone shares a link to the site.
-export const alt = 'T Level Placement Finder: find the placement that fits';
+export const alt = 'T Level Pathways: placements, apprenticeships and degrees for your T Level';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -32,15 +32,15 @@ export default async function OpengraphImage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', fontFamily: 'ArchivoX' }}>
             <span style={{ fontSize: 22, letterSpacing: 6 }}>T LEVEL</span>
-            <span style={{ fontSize: 40 }}>PLACEMENT FINDER</span>
+            <span style={{ fontSize: 40 }}>PATHWAYS</span>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', fontSize: 96, fontFamily: 'ArchivoX', lineHeight: 1, color: '#111' }}>
-          <span>FIND THE</span>
-          <span>PLACEMENT</span>
-          <span style={{ background: '#d8ff3d', alignSelf: 'flex-start', padding: '0 12px' }}>THAT FITS.</span>
+          <span>YOUR T LEVEL.</span>
+          <span>EVERY WAY</span>
+          <span style={{ background: '#d8ff3d', alignSelf: 'flex-start', padding: '0 12px' }}>FORWARD.</span>
         </div>
-        <div style={{ fontSize: 30, color: '#2d2a25', fontFamily: 'Archivo' }}>Engineering employers across England, ranked for your T Level.</div>
+        <div style={{ fontSize: 30, color: '#2d2a25', fontFamily: 'Archivo' }}>Placements, apprenticeships and degrees, ranked and sourced.</div>
       </div>
     ),
     { ...size, fonts },

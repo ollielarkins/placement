@@ -119,6 +119,8 @@ test('robots.txt: our group, wildcard fallback, longest match', () => {
   assert.ok(!allowed(star, '/admin/login'));
   assert.ok(!allowed(star, '/files/a.pdf'));
   assert.ok(allowed(star, '/contact'));
+  const renamed = parseRobots(`User-agent: *\nAllow: /\n\nUser-agent: TLevelPathwaysBot\nDisallow: /`);
+  assert.ok(!allowed(renamed, '/careers'));
 });
 
 test('careers paths: landing pages yes, single vacancies, news and files no', async () => {

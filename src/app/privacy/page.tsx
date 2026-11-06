@@ -26,7 +26,7 @@ export default function PrivacyPage() {
 
       <Section title="Who we are">
         <p>
-          T Level Placement Finder is run by Oliver Larkins. Contact:{' '}
+          T Level Pathways is run by Oliver Larkins. Contact:{' '}
           <a className="text-brand-700 underline" href="mailto:studentenquiries.oliverlarkins@gmail.com">studentenquiries.oliverlarkins@gmail.com</a>.
         </p>
       </Section>

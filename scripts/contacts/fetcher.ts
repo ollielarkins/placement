@@ -2,7 +2,8 @@
 //
 //   * Identifies itself (CRAWLER_CONTACT is required: a URL or email address
 //     a site owner can use to reach us).
-//   * Obeys robots.txt (our token "TLevelPlacementFinderBot", then "*"),
+//   * Obeys robots.txt (our token "TLevelPathwaysBot", or the old
+//     "TLevelPlacementFinderBot", then "*"),
 //     including Crawl-delay up to 10 s.
 //   * One request at a time per host, at least 1.5 s apart.
 //   * HTML only, 1.5 MB cap, 8 s timeout, at most 5 redirects.
@@ -16,7 +17,9 @@ import http from 'node:http';
 import https from 'node:https';
 import zlib from 'node:zlib';
 
-const TOKEN = 'TLevelPlacementFinderBot';
+const TOKEN = 'TLevelPathwaysBot';
+// Rules a site wrote for our previous name still apply.
+const OLD_TOKENS = ['TLevelPlacementFinderBot'];
 const MAX_BYTES = 1_500_000;
 const TIMEOUT_MS = 8_000; // a site that hasn't answered in 8 s rarely does
 const MIN_GAP_MS = 1_500;
@@ -300,7 +303,9 @@ export function parseRobots(txt: string): Rules {
     else if (key === 'allow' && v) cur.allow.push(v);
     else if (key === 'crawl-delay') cur.delay = Math.min(10, Number.parseFloat(v) || 0);
   }
-  const mine = groups.find((g) => g.agents.some((a) => a !== '*' && TOKEN.toLowerCase().includes(a)));
+  const mine = groups.find((g) =>
+    g.agents.some((a) => a !== '*' && [TOKEN, ...OLD_TOKENS].some((t) => t.toLowerCase().includes(a))),
+  );
   const g = mine ?? groups.find((x) => x.agents.includes('*'));
   return g ? { disallow: g.disallow, allow: g.allow, delayMs: g.delay * 1000 } : { disallow: [], allow: [], delayMs: 0 };
 }

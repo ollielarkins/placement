@@ -29,8 +29,9 @@ export default async function HomePage() {
             </span>
           </h1>
           <p className="max-w-xl text-lg">
-            Your 315 hours, sorted. Every engineering employer in England, ranked for your specialism and how far
-            you can get. No account, no catch.
+            Your 315 hours, sorted, and what comes after. Every engineering employer in England ranked for your
+            specialism and how far you can get, plus the apprenticeships and degrees that take your T Level. No
+            account, no catch.
           </p>
         </div>
 

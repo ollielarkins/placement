@@ -15,7 +15,7 @@ export function publicDb(): SupabaseClient {
   }
   client = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { headers: { 'x-client-info': 'tlevel-placement-finder/phase1' } },
+    global: { headers: { 'x-client-info': 'tlevel-pathways/1' } },
   });
   return client;
 }

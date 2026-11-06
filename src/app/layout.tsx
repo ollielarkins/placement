@@ -7,9 +7,9 @@ import './globals.css';
 const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: { default: 'T Level Placement Finder', template: '%s · T Level Placement Finder' },
+  title: { default: 'T Level Pathways', template: '%s · T Level Pathways' },
   description:
-    'Find, compare and rank engineering employers in England for your T Level industry placement. Every company shows where its information came from.',
+    'Placements, apprenticeships and degrees for Engineering and Manufacturing T Level students in England. Every employer ranked for you, every source shown.',
 };
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#111111' };
@@ -23,13 +23,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <header className="border-b-2 border-ink bg-paper">
           <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3" aria-label="Main">
-            <Link href="/" className="group flex items-center gap-2" aria-label="T Level Placement Finder, home">
+            <Link href="/" className="group flex items-center gap-2" aria-label="T Level Pathways, home">
               <span aria-hidden className="grid size-8 place-items-center border-2 border-ink bg-volt text-lg leading-none shadow-hard-sm transition group-hover:-translate-y-0.5">
                 ◆
               </span>
               <span className="grid leading-none">
                 <span className="text-[10px] font-semibold tracking-[0.2em]">T LEVEL</span>
-                <span className="display text-base sm:text-lg">Placement Finder</span>
+                <span className="display text-base sm:text-lg">Pathways</span>
               </span>
             </Link>
             <div className="flex gap-1 text-sm font-semibold">
@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="mt-10 border-t-2 border-ink bg-ink text-paper">
           <div className="mx-auto grid max-w-6xl gap-4 px-4 py-8 text-sm sm:grid-cols-[1fr_auto]">
             <div className="grid gap-2">
-              <p className="display text-2xl text-volt">Placement Finder</p>
+              <p className="display text-2xl text-volt">T Level Pathways</p>
               <p className="max-w-xl text-paper/80">
                 Built by a T Level student, for T Level students. Company data: Companies House and Find an
                 apprenticeship (Open Government Licence v3.0), plus research with a source for every claim. Courses:
