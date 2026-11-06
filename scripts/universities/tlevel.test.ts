@@ -129,3 +129,25 @@ test('saved readings file parses quoted CSV', async () => {
   const r = loadReadings(f).get('10007783|EEE1|1')!;
   assert.deepEqual(r, { status: 'accepted', requirement: '96–112 UCAS points, incl. maths', quote: 'T Levels: "No" specific subjects, required.' });
 });
+
+test('top-university shapes (06/11/2026)', () => {
+  const surrey = '<summary>T Level</summary><button>More info</button><button>Close</button><p>BEng (Hons) with foundation year:</p><p>T – Level with an overall grade of Pass and a grade of D in the Core Component</p>';
+  const r1 = readTLevels(tLevelPassages(pageText(surrey)), { courseTitle: 'Aerospace Engineering' });
+  assert.equal(r1.status, 'not_accepted'); // direct entry: T Levels only via the foundation year
+  const r2 = readTLevels(tLevelPassages(pageText(surrey)), { courseTitle: 'Aerospace Engineering with Foundation Year' });
+  assert.deepEqual([r2.status, r2.requirement], ['accepted', 'Pass']);
+  const uel = '<p>T Levels - we do not accept for this course, except for the Foundation Year</p>';
+  assert.equal(readTLevels(tLevelPassages(pageText(uel)), { courseTitle: 'Aeronautical Engineering' }).status, 'not_accepted');
+  assert.equal(readTLevels(tLevelPassages(pageText(uel)), { courseTitle: 'Aeronautical Engineering with Foundation Year' }).status, 'accepted');
+  assert.equal(read('<dt>T levels</dt><dd>Acceptable on its own and combined with other qualifications.</dd>').status, 'accepted');
+  assert.equal(read('<p>T levels are not acceptable on its own.</p>').status, 'not_accepted');
+  // Content embedded as JSON with < escapes.
+  assert.equal(read('<script>{"html":"\\u003cdt\\u003eT Levels\\u003c/dt\\u003e\\u003cdd\\u003eMerit overall\\u003c/dd\\u003e"}</script><div>x</div>').status, 'unknown'); // scripts are still dropped
+  assert.equal(read('<div data-x="\\u003cp\\u003eT Levels: Merit\\u003c/p\\u003e"></div>').status, 'accepted');
+});
+
+test('Surrey live layout: buttons inline, label line ending in a colon', () => {
+  const html = '<div><span>T Level</span> <span>More info</span> <span>Close</span> <span>BEng (Hons) with foundation year:</span></div><p>T – Level with an overall grade of Pass and a grade of D in the Core Component</p>';
+  assert.equal(readTLevels(tLevelPassages(pageText(html)), { courseTitle: 'Aerospace Engineering with Foundation Year' }).status, 'accepted');
+  assert.equal(readTLevels(tLevelPassages(pageText(html)), { courseTitle: 'Aerospace Engineering' }).status, 'not_accepted');
+});

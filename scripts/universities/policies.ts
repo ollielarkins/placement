@@ -216,7 +216,7 @@ async function main() {
     options: { 'dry-run': { type: 'boolean', default: false }, verbose: { type: 'boolean', default: false }, limit: { type: 'string' }, uni: { type: 'string' }, concurrency: { type: 'string', default: '24' } },
   });
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
-  const f = new PoliteFetcher(process.env.CRAWLER_CONTACT ?? '');
+  const f = new PoliteFetcher(process.env.CRAWLER_CONTACT ?? '', { timeoutMs: 20_000 }) // some university sites take 5-10 s;
   const db = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 4, connectionTimeoutMillis: 20_000, query_timeout: 60_000 });
   const { rows } = await db.query<{ id: string; ukprn: string; name: string; website: string | null; course_urls: string[]; all_course_urls: string[] }>(
     `select u.id, u.ukprn, u.name, u.website,

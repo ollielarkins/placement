@@ -114,7 +114,7 @@ async function assess(f: PoliteFetcher, c: Course, apiKey: string | null, readin
   for (const p of pages) {
     const passages = tLevelPassages(p.text);
     if (!passages.length) continue;
-    let r = readTLevels(passages);
+    let r = readTLevels(passages, { courseTitle: c.title });
     let by: Result['by'] = 'rules';
     const saved = r.status === 'unknown' ? readings.get(c.key) : undefined;
     if (saved && passages.some((x) => squash(x).includes(squash(saved.quote)))) {
@@ -145,10 +145,11 @@ async function main() {
       'no-claude': { type: 'boolean', default: false },
       group: { type: 'string' }, // engineering, computing, ... (default: all)
       random: { type: 'boolean', default: false }, // random order, for sampling
+      'recheck-unknown': { type: 'boolean', default: false }, // re-read every course still "unknown" now
     },
   });
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
-  const f = new PoliteFetcher(process.env.CRAWLER_CONTACT ?? '');
+  const f = new PoliteFetcher(process.env.CRAWLER_CONTACT ?? '', { timeoutMs: 20_000 }) // some university sites take 5-10 s;
   const apiKey = values['no-claude'] ? null : (process.env.ANTHROPIC_API_KEY ?? null);
   const readings = loadReadings();
   console.log(`${readings.size} saved readings of unclear wording (data/uni-tlevel-readings.csv)`);
@@ -159,7 +160,8 @@ async function main() {
     `select c.id, c.title, u.name as university, c.course_url, u.ukprn || '|' || c.kis_course_id || '|' || c.kis_mode as key
        from public.uni_courses c join public.universities u on u.id = c.university_id
       where c.course_url is not null
-        and (c.tlevel_assessed_at is null or c.tlevel_assessed_at < now() - interval '60 days')
+        and (c.tlevel_assessed_at is null or c.tlevel_assessed_at < now() - interval '60 days'
+             or ($4 and c.tlevel_status = 'unknown') or ($4 and c.tlevel_scope = 'university'))
         and c.tlevel_assessed_by is distinct from 'curated'
         and ($2::text is null or c.subject_group::text = $2)
       -- One course per university per round: each site allows one request at a
@@ -168,7 +170,7 @@ async function main() {
                (c.subject_group = 'engineering') desc,
                row_number() over (partition by c.university_id order by c.title), u.name
       limit $1`,
-    [values['dry-run'] ? Math.min(limit, 80) : limit, values.group ?? null, values.random],
+    [values['dry-run'] ? Math.min(limit, 80) : limit, values.group ?? null, values.random, values['recheck-unknown']],
   );
   console.log(`${rows.length} courses to check`);
   const counts: Record<string, number> = {};

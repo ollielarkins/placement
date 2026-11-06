@@ -39,7 +39,10 @@ export class PoliteFetcher {
   private nextFree = new Map<string, number>();
   private chains = new Map<string, Promise<unknown>>();
 
-  constructor(contact: string) {
+  private readonly timeoutMs: number;
+
+  constructor(contact: string, opts: { timeoutMs?: number } = {}) {
+    this.timeoutMs = opts.timeoutMs ?? TIMEOUT_MS;
     if (!contact) throw new Error('CRAWLER_CONTACT is not set (a URL or email site owners can use to reach you)');
     this.ua = `Mozilla/5.0 (compatible; ${TOKEN}/0.1; +${contact})`;
   }
@@ -90,7 +93,9 @@ export class PoliteFetcher {
     const res = await httpGet(
       url,
       this.ua,
-      kind === 'html' ? 'text/html,application/xhtml+xml' : 'application/xml,text/xml,text/plain',
+      this.timeoutMs,
+      // A browser-style Accept: some sites (Bradford) send a cut-down page otherwise.
+      kind === 'html' ? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' : 'application/xml,text/xml,text/plain',
       kind === 'html' ? MAX_BYTES : 8_000_000,
       (h) => (kind === 'html' ? (h['content-type'] ?? '').includes('html') : /xml|text\/plain/.test(h['content-type'] ?? '')),
     );
@@ -126,7 +131,7 @@ export class PoliteFetcher {
 
   private async loadRobots(origin: string, hops = 0): Promise<Rules> {
     // Some robots.txt files run to megabytes; the first 500 kB is plenty.
-    const res = await httpGet(`${origin}/robots.txt`, this.ua, 'text/plain', 500_000, () => true);
+    const res = await httpGet(`${origin}/robots.txt`, this.ua, this.timeoutMs, 'text/plain', 500_000, () => true);
     // Network trouble or 5xx: treat the site as closed. 4xx: no rules.
     if (!res || res.status >= 500) return { disallow: ['/'], allow: [], delayMs: 0 };
     if (res.status >= 300 && res.status < 400 && res.location && hops < 3) {
@@ -198,6 +203,7 @@ interface RawResponse {
 function httpGet(
   url: string,
   ua: string,
+  timeoutMs: number,
   accept: string,
   maxBytes: number,
   wantBody: (headers: http.IncomingHttpHeaders) => boolean,
@@ -264,7 +270,7 @@ function httpGet(
       },
     );
     req.on('error', () => finish(null));
-    const deadline = setTimeout(() => finish(null), TIMEOUT_MS);
+    const deadline = setTimeout(() => finish(null), timeoutMs);
   });
 }
 

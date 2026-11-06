@@ -43,11 +43,15 @@ export function dropdownTLevelText(html: string): string[] {
 }
 
 /** Visible text of a page, with line breaks kept at block boundaries. */
-export function pageText(html: string): string {
+export function pageText(rawHtml: string): string {
+  // Page content embedded as JSON (React/Next hydration data) uses \u003c escapes.
+  const html = /\\u003c/i.test(rawHtml)
+    ? rawHtml.replace(/\\u003c/gi, '<').replace(/\\u003e/gi, '>').replace(/\\u0026/gi, '&').replace(/\\n/g, '\n').replace(/\\"/g, '"')
+    : rawHtml;
   const hidden = dropdownTLevelText(html);
   return (hidden.length ? `${hidden.join('\n')}\n` : '') + html
     .replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, ' ')
-    .replace(/<\s*(br|\/p|\/li|\/h[1-6]|\/tr|\/div|\/dd|\/dt)\s*\/?>/gi, '\n')
+    .replace(/<\s*(br|\/p|\/li|\/h[1-6]|\/tr|\/div|\/dd|\/dt|\/summary|\/button|\/label)\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;|&#160;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -64,16 +68,35 @@ export function pageText(html: string): string {
  * next line when the mention is a heading ("T Levels" followed by the
  * requirement). Each at most 600 characters.
  */
+const UI_NOISE = /^(more\s+info(rmation)?|close|show\s+(more|less)|read\s+more|less|expand|collapse|open|view|toggle|[+\-×x]|)$/i;
+
+const stripButtons = (l: string) =>
+  l.replace(/\b(More\s+info(rmation)?|Close|Show\s+(more|less)|Read\s+more)\b/g, ' ').replace(/\s+/g, ' ').trim();
+
 export function tLevelPassages(text: string): string[] {
   const lines = text.split('\n');
   const out: string[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]!;
+    // Button labels run into the line on some sites ("T Level More info Close BEng ...").
+    const line = stripButtons(lines[i]!);
     if (!HAS_T_LEVEL.test(line)) continue;
     let passage = line;
     // A short heading-like line ("T Levels", "T Level:") carries its detail on the next line(s).
-    if (line.replace(T_LEVEL, '').replace(/[^a-z]/gi, '').length < 12 && !gradeIn(line)) {
-      passage = [line, lines[i + 1] ?? '', lines[i + 2] ?? ''].join(' ').trim();
+    // A heading ("T Levels") or a label ending in ":" carries its detail on the next line(s).
+    if ((line.replace(T_LEVEL, '').replace(/[^a-z]/gi, '').length < 12 || /:\s*$/.test(line)) && !gradeIn(line)) {
+      // The detail follows on the next lines; skip button labels ("More info", "Close").
+      const next: string[] = [];
+      let listAfterColon = false;
+      for (let j = i + 1; j < lines.length && j <= i + 10 && next.length < 6; j++) {
+        const l = stripButtons(lines[j]!);
+        if (!l || UI_NOISE.test(l)) continue;
+        next.push(l);
+        // "...in the following subjects:" - keep the list that follows.
+        if (/:\s*$/.test(l)) listAfterColon = true;
+        // Stop after two lines of detail, unless a label or list continues it.
+        if (next.length >= 2 && !/:\s*$/.test(l) && !(listAfterColon && l.length < 120)) break;
+      }
+      passage = [line, ...next].join(' ').trim();
     }
     passage = passage.replace(/\s+/g, ' ').trim();
     if (passage.length > 600) {
@@ -88,8 +111,9 @@ export function tLevelPassages(text: string): string[] {
 
 const NOT_ACCEPTED_BEFORE = /\b(do(es)?\s+not|don't|doesn't|cannot|can't|are\s+unable\s+to|is\s+unable\s+to|unable\s+to|(are|is)\s+(currently\s+)?not)\s+(currently\s+)?(accept|consider)\w*\s+(the\s+)?(any\s+)?T[\s-]?Levels?/i;
 const NOT_ACCEPTED_AFTER = /\bT[\s-]?Levels?\b([^.]{0,80}?)\b((are|is)\s+not\s+(currently\s+)?(accepted|acceptable|considered|suitable|eligible)|not\s+(accepted|acceptable|considered))/i;
+const NOT_ACCEPTED_DASH = /\bT[\s-]?Levels?\b\s*[-–:]?\s*we\s+(do\s+not|don't|cannot|can't|are\s+unable\s+to)\s+(currently\s+)?accept\b/i;
 function saysNotAccepted(p: string): boolean {
-  if (NOT_ACCEPTED_BEFORE.test(p)) return true;
+  if (NOT_ACCEPTED_BEFORE.test(p) || NOT_ACCEPTED_DASH.test(p)) return true;
   const m = NOT_ACCEPTED_AFTER.exec(p);
   // "Other T-level subjects are not accepted": the named ones are.
   if (m && /\b(other|any\s+other|remaining)\s+$/i.test(p.slice(Math.max(0, m.index - 20), m.index))) return false;
@@ -161,7 +185,12 @@ function gradeSoonAfterTLevel(p: string): boolean {
 }
 
 /** Rules-only reading of a page's T Level passages. */
-export function readTLevels(passages: string[]): Reading {
+const ACCEPTABLE = /\bT[\s-]?levels?\b[^.]{0,40}?(?<!not\s)\b(acceptable|accepted)\s+(on\s+its\s+own|in\s+full|for\s+entry)\b/i;
+const FY_COURSE = /foundation\s+year|with\s+(a\s+|an\s+)?(integrated\s+)?foundation|extended\s+degree|year\s+0\b|year\s+zero/i;
+const FY_ONLY = /\b(with|for|onto|into|via|through)\s+(an?\s+|the\s+|our\s+)?(integrated\s+)?foundation\s+year\b|foundation\s+year\s*(only|route)|\bwith\s+foundation\s+year\s*:/i;
+const FY_EXCEPT = /\bexcept\s+(for\s+)?(the\s+|our\s+)?(integrated\s+)?foundation\s+year|\b(considered|apply)\s+for\s+(an?\s+|the\s+|our\s+)?(integrated\s+)?foundation\s+(year|course)/i;
+
+export function readTLevels(passages: string[], ctx: { courseTitle?: string } = {}): Reading {
   if (!passages.length) return { status: 'unknown', requirement: null, quote: null, ambiguous: false };
 
   const found: { status: TLevelStatus; passage: string }[] = [];
@@ -173,6 +202,17 @@ export function readTLevels(passages: string[]): Reading {
     else if (gradeSoonAfterTLevel(p)) found.push({ status: 'accepted', passage: p });
     else if (caseByCase(p)) found.push({ status: 'case_by_case', passage: p });
     else if (gradeIn(p) && ACCEPT_WORDS.test(p)) found.push({ status: 'accepted', passage: p });
+    else if (ACCEPTABLE.test(p)) found.push({ status: 'accepted', passage: p });
+  }
+  // Foundation-year routes: "T Levels accepted for the BEng with foundation
+  // year" means direct entry is not accepted; "not accepted, except for the
+  // Foundation Year" means the foundation-year course does accept them.
+  if (ctx.courseTitle !== undefined) {
+    const fyCourse = FY_COURSE.test(ctx.courseTitle);
+    for (const f of found) {
+      if ((f.status === 'accepted' || f.status === 'accepted_with_maths') && FY_ONLY.test(f.passage) && !fyCourse) f.status = 'not_accepted';
+      else if (f.status === 'not_accepted' && FY_EXCEPT.test(f.passage) && fyCourse) f.status = 'accepted';
+    }
   }
   const statuses = new Set(found.map((f) => f.status));
   // Specific readings outrank generic "contact admissions" text; a page that
