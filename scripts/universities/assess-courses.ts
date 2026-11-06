@@ -192,7 +192,8 @@ async function main() {
       } else {
         await db.query(
           `update public.uni_courses set tlevel_status = $2, tlevel_requirement = $3, tlevel_quote = $4, tlevel_quote_url = $5,
-                  tlevel_assessed_by = $6, tlevel_assessed_at = now(), alevel_requirement = coalesce($7, alevel_requirement)
+                  tlevel_assessed_by = $6, tlevel_assessed_at = now(), tlevel_scope = 'course',
+                  alevel_requirement = coalesce($7, alevel_requirement)
             where id = $1 and tlevel_assessed_by is distinct from 'curated'`,
           // An unclear passage is kept with "unknown" so students can read it themselves.
           [c.id, r.status, r.requirement, r.quote, r.quote ? r.quoteUrl : null, r.by, r.alevel],

@@ -20,7 +20,8 @@
     "crawl:contacts:loop": "tsx scripts/contacts/run-until-done.ts",
     "domains:candidates": "tsx scripts/contacts/domain-candidates.ts",
     "unis:import": "tsx scripts/universities/import-discover-uni.ts",
-    "unis:assess": "tsx scripts/universities/assess-courses.ts"
+    "unis:assess": "tsx scripts/universities/assess-courses.ts",
+    "unis:policies": "tsx scripts/universities/policies.ts"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

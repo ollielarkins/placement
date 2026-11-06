@@ -57,11 +57,13 @@ export default async function CoursePage({ params }: Props) {
             <blockquote className="text-slate-900">“{c.tlevel_quote}”</blockquote>
             <figcaption className="text-xs text-slate-500">
               {c.tlevel_status === 'unknown' ? 'The wording wasn’t clear enough to label. ' : ''}
-              From{' '}
+              {c.tlevel_scope === 'university' ? 'The course page doesn’t say, so this is from ' : 'From '}
               {c.tlevel_quote_url ? (
                 <a href={c.tlevel_quote_url} rel="noopener noreferrer nofollow" target="_blank" className="underline">
-                  the course page
+                  {c.tlevel_scope === 'university' ? `${c.university.name}’s general T Level statement` : 'the course page'}
                 </a>
+              ) : c.tlevel_scope === 'university' ? (
+                `${c.university.name}’s general T Level statement`
               ) : (
                 'the course page'
               )}
@@ -69,6 +71,18 @@ export default async function CoursePage({ params }: Props) {
               {c.tlevel_assessed_by === 'claude' ? ' (labelled with AI help from this exact quote)' : ''}.
             </figcaption>
           </figure>
+        ) : null}
+        {c.tlevel_status === 'unknown' && c.tlevel_scope === 'course' && c.university.tlevel_policy_url ? (
+          <div className="grid gap-1 border-2 border-dashed border-ink bg-paper p-3 text-sm">
+            <p className="font-medium">
+              {c.university.name} has a general T Level page.{' '}
+              <a href={c.university.tlevel_policy_url} rel="noopener noreferrer nofollow" target="_blank" className="underline">
+                Read it here
+              </a>
+              . It may list which courses accept T Levels.
+            </p>
+            {c.university.tlevel_policy_quote ? <p className="text-slate-700">“{c.university.tlevel_policy_quote}”</p> : null}
+          </div>
         ) : null}
         {c.alevel_requirement ? (
           <p>

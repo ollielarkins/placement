@@ -118,7 +118,7 @@ const GRADE = /\b(Distinction\*|Distinction|Merit|Pass)\b(\s*\(\s*(A\*|[A-E]\*?|
 const ACCEPT_WORDS = /\b(accept\w*|consider\w*|welcome\w*|suitable|eligible|meet\w*|require\w*|grade|overall|typical\s+offer|entry\s+requirements?)\b/i;
 // The page is about engineering T Levels, or T Levels in general.
 const OTHER_ROUTE_ONLY = /\bT[\s-]?Levels?\s+in\s+(Health|Healthcare|Science|Education|Childcare|Digital|Accounting|Finance|Legal|Agriculture|Hair|Catering|Management|Media|Onsite|Building\s+Services)\b/i;
-const ENGINEERING_ROUTE = /\b(Engineering|Manufacturing|Design\s+and\s+Development|Maintenance,?\s+Installation|Processing\s+and\s+Control)\b/i;
+export const ENGINEERING_ROUTE = /\b(Engineering|Manufacturing|Design\s+and\s+Development|Maintenance,?\s+Installation|Processing\s+and\s+Control)\b/i;
 
 /** The requirement wording near the T Level mention, e.g. "Distinction" or "D*". */
 const LETTER_GRADE = /\b(?:Grade|overall(?:\s+grade)?(?:\s+of)?)\s+(D\*|D|M|P)(?=[\s,.;)]|$)|\bT[\s-]?Levels?\s*:?\s+(D\*|D|M|P)(?=[\s,.;)-]|$)/i;

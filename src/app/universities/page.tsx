@@ -110,6 +110,11 @@ function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         <TLevelBadge status={r.tlevel_status} requirement={r.tlevel_requirement} />
+        {r.tlevel_scope === 'university' && r.tlevel_status !== 'unknown' ? (
+          <span className="text-xs text-slate-600" title="The course page doesn't say; this is the university's general T Level statement.">
+            university-wide statement
+          </span>
+        ) : null}
         {r.on_dfe_tlevel_list ? <span className="border border-ink px-2 py-0.5 text-xs font-medium">On DfE T Level list</span> : null}
         {extras.map((e) => (
           <span key={e} className="border border-ink px-2 py-0.5 text-xs font-medium">

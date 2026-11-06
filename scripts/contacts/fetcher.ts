@@ -63,6 +63,15 @@ export class PoliteFetcher {
 
   /** GET an HTML page, or null when blocked, missing, not HTML or failing. */
   async get(url: string): Promise<Page | null> {
+    return this.getDoc(url, 'html');
+  }
+
+  /** XML or plain text (sitemaps, robots.txt), same politeness as get(). */
+  async getXml(url: string): Promise<Page | null> {
+    return this.getDoc(url, 'xml');
+  }
+
+  private async getDoc(url: string, kind: 'html' | 'xml'): Promise<Page | null> {
     let u: URL;
     try {
       u = new URL(url);
@@ -73,13 +82,17 @@ export class PoliteFetcher {
     if (!allowed(rules, u.pathname + u.search)) return null;
     return this.serial(u.host, async () => {
       await this.wait(u.host, rules.delayMs);
-      return this.fetchHtml(u.toString());
+      return this.fetchHtml(u.toString(), 0, kind);
     });
   }
 
-  private async fetchHtml(url: string, hops = 0): Promise<Page | null> {
-    const res = await httpGet(url, this.ua, 'text/html,application/xhtml+xml', MAX_BYTES, (h) =>
-      (h['content-type'] ?? '').includes('html'),
+  private async fetchHtml(url: string, hops = 0, kind: 'html' | 'xml' = 'html'): Promise<Page | null> {
+    const res = await httpGet(
+      url,
+      this.ua,
+      kind === 'html' ? 'text/html,application/xhtml+xml' : 'application/xml,text/xml,text/plain',
+      kind === 'html' ? MAX_BYTES : 8_000_000,
+      (h) => (kind === 'html' ? (h['content-type'] ?? '').includes('html') : /xml|text\/plain/.test(h['content-type'] ?? '')),
     );
     if (!res) return null;
     if (res.status >= 300 && res.status < 400 && res.location) {
@@ -94,7 +107,7 @@ export class PoliteFetcher {
       // A redirect to another host is followed, but that host's robots.txt
       // still applies.
       if (!allowed(await this.rulesFor(next), next.pathname + next.search)) return null;
-      return this.fetchHtml(next.toString(), hops + 1);
+      return this.fetchHtml(next.toString(), hops + 1, kind);
     }
     if (res.status < 200 || res.status >= 300 || res.body === null) return null;
     return { url, status: res.status, html: res.body };

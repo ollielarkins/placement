@@ -132,6 +132,8 @@ export interface CourseRow {
   course_url: string | null;
   foundation_year: boolean | null;
   sandwich_year: boolean | null;
+  /** university: the label comes from the university's general T Level statement (0025). */
+  tlevel_scope: 'course' | 'university';
   total: number;
 }
 
@@ -168,6 +170,7 @@ export interface CourseDetail {
   tlevel_quote_url: string | null;
   tlevel_assessed_by: 'rules' | 'claude' | 'curated' | null;
   tlevel_assessed_at: string | null;
+  tlevel_scope: 'course' | 'university';
   alevel_requirement: string | null;
   source_url: string;
   fetched_at: string;
@@ -179,6 +182,10 @@ export interface CourseDetail {
     on_dfe_tlevel_list: boolean;
     dfe_list_url: string | null;
     dfe_list_checked_on: string | null;
+    tlevel_policy_status: TLevelStatus | null;
+    tlevel_policy_quote: string | null;
+    tlevel_policy_url: string | null;
+    tlevel_policy_checked_at: string | null;
   };
 }
 
