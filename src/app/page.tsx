@@ -8,7 +8,6 @@ export default async function HomePage() {
   const [ref, counts, stats] = await Promise.all([referenceData(), regionCounts(), siteStats()]);
   const totals = counts.filter((c) => c.county === null);
   const all = stats?.employers ?? totals.reduce((n, c) => n + c.companies, 0);
-  const verified = stats?.verified ?? totals.reduce((n, c) => n + c.verified, 0);
   const withVacancies = totals.reduce((n, c) => n + c.with_vacancies, 0);
 
   return (
@@ -40,15 +39,18 @@ export default async function HomePage() {
         </section>
       </section>
 
-      <section aria-label="What's in here" className={`grid border-2 border-ink bg-white ${stats ? 'lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
-        <Stat value={all} label="engineering employers in England" wide={!!stats} />
-        {stats ? (
-          <Stat value={stats.employers_with_contacts} label="with a way to get in touch: careers page, email, phone or form" highlight wide />
-        ) : (
-          <Stat value={verified} label="checked by a person for T Level placements" highlight />
-        )}
-        <Stat value={stats?.live_adverts ?? withVacancies} label={stats ? 'live engineering apprenticeship adverts' : 'employers with live apprenticeship adverts'} wide={!!stats} />
-        {stats ? <Stat value={stats.uni_courses_labelled} label={`degree courses with a clear T Level answer, out of ${stats.uni_courses.toLocaleString('en-GB')}`} wide /> : null}
+      <section aria-label="What's in here" className={`grid gap-[2px] border-2 border-ink bg-ink ${stats?.employers_with_contacts != null ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
+        <Stat value={all} label="engineering employers in England" highlight />
+        <Stat value={stats?.live_adverts ?? withVacancies} label={stats?.live_adverts != null ? 'live engineering apprenticeship adverts' : 'employers with live apprenticeship adverts'} />
+        {stats?.uni_courses != null ? (
+          <Stat
+            value={stats.uni_courses}
+            label={stats.universities ? `degree courses at ${stats.universities.toLocaleString('en-GB')} universities and colleges` : 'engineering, computing, maths and science degree courses'}
+          />
+        ) : null}
+        {stats?.employers_with_contacts != null ? (
+          <Stat value={stats.employers_with_contacts} label="employers with a way to get in touch" />
+        ) : null}
       </section>
 
       <section aria-labelledby="paths" className="grid gap-4">
@@ -97,13 +99,10 @@ export default async function HomePage() {
   );
 }
 
-function Stat({ value, label, highlight = false, wide = false }: { value: number; label: string; highlight?: boolean; wide?: boolean }) {
-  // Stacked on phones; side by side from sm (three figures) or lg (four).
-  const borders = wide
-    ? 'not-last:border-b-2 lg:not-last:border-b-0 lg:not-last:border-r-2'
-    : 'not-last:border-b-2 sm:not-last:border-b-0 sm:not-last:border-r-2';
+function Stat({ value, label, highlight = false }: { value: number; label: string; highlight?: boolean }) {
+  // The 2px gaps on the ink background draw the dividing lines, whatever the layout.
   return (
-    <div className={`grid gap-1 border-ink p-5 ${borders} ${highlight ? 'bg-volt' : ''}`}>
+    <div className={`grid content-start gap-1 p-5 ${highlight ? 'bg-volt' : 'bg-white'}`}>
       <div className="display text-4xl tabular-nums sm:text-5xl">{value.toLocaleString('en-GB')}</div>
       <div className="text-sm font-medium">{label}</div>
     </div>

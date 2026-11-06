@@ -212,13 +212,23 @@ export interface SiteStats {
   refreshed_at: string;
 }
 
-/** Home page figures (migration 0027), or null if unavailable: the page then hides them. */
-export async function siteStats(): Promise<SiteStats | null> {
+/**
+ * Home page figures (migration 0027). Until that's live, or if it fails, the
+ * course and advert totals come from the search RPCs' total counts and the
+ * other figures are left out (null).
+ */
+export async function siteStats(): Promise<Partial<SiteStats> | null> {
   try {
     return await cached('site_stats', 60 * 60 * 1000, async () => {
       const { data, error } = await publicDb().rpc('site_stats');
-      if (error || !data) throw new Error(error?.message ?? 'no data');
-      return data as SiteStats;
+      if (!error && data) return data as SiteStats;
+      const total = async (fn: string) => {
+        const { data: rows, error: e } = await publicDb().rpc(fn, { p: { limit: 1 } });
+        if (e) throw new Error(e.message);
+        return Number((rows as { total?: number }[] | null)?.[0]?.total ?? 0);
+      };
+      const [uni_courses, live_adverts] = await Promise.all([total('search_uni_courses'), total('search_apprenticeships')]);
+      return { uni_courses, live_adverts } as Partial<SiteStats>;
     });
   } catch {
     return null;
