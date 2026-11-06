@@ -94,6 +94,8 @@ export interface UniSearch {
   group: Exclude<SubjectGroup, 'other'> | null;
   nation: Nation | null;
   dfe: boolean;
+  russell: boolean;
+  fy: 'yes' | 'no' | null; // foundation year available / not
   page: number;
 }
 
@@ -109,6 +111,8 @@ export function parseUniSearch(p: Params): UniSearch {
     group: group === 'all' ? null : group && group in SUBJECT_GROUPS ? (group as UniSearch['group']) : 'engineering',
     nation: nation && nation in NATIONS ? (nation as Nation) : null,
     dfe: one(p, 'dfe') === '1',
+    russell: one(p, 'rg') === '1',
+    fy: one(p, 'fy') === 'yes' ? 'yes' : one(p, 'fy') === 'no' ? 'no' : null,
     page: int(one(p, 'page'), 1, 100, 1),
   };
 }
@@ -123,6 +127,8 @@ export function uniHref(s: UniSearch, over: Partial<UniSearch> = {}): string {
   u.set('group', v.group ?? 'all');
   if (v.nation) u.set('nation', v.nation);
   if (v.dfe) u.set('dfe', '1');
+  if (v.russell) u.set('rg', '1');
+  if (v.fy) u.set('fy', v.fy);
   if (v.page > 1) u.set('page', String(v.page));
   return `/universities?${u.toString()}`;
 }
@@ -145,11 +151,13 @@ export interface CourseRow {
   sandwich_year: boolean | null;
   /** university: the label comes from the university's general T Level statement (0025). */
   tlevel_scope: 'course' | 'university';
+  russell_group: boolean;
   total: number;
 }
 
 export async function searchUniCourses(s: UniSearch, origin: OutcodeCentroid | null) {
-  const p: Record<string, unknown> = { page: s.page, limit: UNI_PAGE_SIZE, dfe_list: s.dfe };
+  const p: Record<string, unknown> = { page: s.page, limit: UNI_PAGE_SIZE, dfe_list: s.dfe, russell: s.russell };
+  if (s.fy) p.foundation = s.fy;
   if (s.q) p.q = s.q;
   if (s.status.length) p.status = s.status;
   if (s.group) p.group = s.group;
@@ -188,6 +196,7 @@ export interface CourseDetail {
     name: string;
     nation: Nation | null;
     website: string | null;
+    russell_group: boolean;
     on_dfe_tlevel_list: boolean;
     dfe_list_url: string | null;
     dfe_list_checked_on: string | null;

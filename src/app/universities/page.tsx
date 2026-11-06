@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Form from 'next/form';
 import Link from 'next/link';
 import { PendingButton } from '@/components/PendingButton';
+import { CardStack, ViewToggle } from '@/components/CardStack';
 import { SaveCourseButton } from '@/components/SaveButton';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { miles } from '@/lib/format';
@@ -33,6 +34,8 @@ export default async function UniversitiesPage({ searchParams }: Props) {
   const origin = s.oc ? await lookupOutcode(s.oc).catch(() => null) : null;
   const { rows, total } = await searchUniCourses(s, origin);
   const pages = Math.ceil(total / UNI_PAGE_SIZE);
+  const cards = params.view === 'cards';
+  const withView = (href: string) => (cards ? `${href}&view=cards` : href);
 
   return (
     <div className="grid gap-6">
@@ -47,22 +50,48 @@ export default async function UniversitiesPage({ searchParams }: Props) {
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <details className="border-2 border-ink bg-white lg:hidden">
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Filters</summary>
-          <Filters s={s} />
+          <Filters s={s} cards={cards} />
         </details>
         <div className="hidden lg:block">
-          <Filters s={s} />
+          <Filters s={s} cards={cards} />
         </div>
 
         <section aria-labelledby="results" className="grid content-start gap-3">
-          <h2 id="results" className="text-lg font-semibold">
-            {total.toLocaleString('en-GB')} {total === 1 ? 'course' : 'courses'}
-            {origin && s.km ? ` within ${miles(s.km)} of ${origin.outcode}` : ''}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="results" className="text-lg font-semibold">
+              {total.toLocaleString('en-GB')} {total === 1 ? 'course' : 'courses'}
+              {origin && s.km ? ` within ${miles(s.km)} of ${origin.outcode}` : ''}
+            </h2>
+            <ViewToggle listHref={uniHref(s)} cardsHref={`${uniHref(s, { page: 1 })}&view=cards`} cards={cards} />
+          </div>
           {s.oc && !origin ? (
             <p role="alert" className="text-sm text-red-700">We couldn&apos;t find that postcode. Try the first half only, for example MK45.</p>
           ) : null}
-          <Legend />
-          {rows.length ? (
+          {cards ? null : <Legend />}
+          {cards ? (
+            <CardStack
+              itemType="course"
+              label="courses"
+              nextPageHref={s.page < Math.min(pages, 100) ? withView(uniHref(s, { page: s.page + 1 })) : null}
+              items={rows.map((r) => ({
+                id: r.id,
+                title: r.title,
+                subtitle: [r.university, r.qualification].filter(Boolean).join(' · '),
+                badge: {
+                  text: `${TLEVEL_STATUS[r.tlevel_status].label}${r.tlevel_requirement && (r.tlevel_status === 'accepted' || r.tlevel_status === 'accepted_with_maths') ? ` · ${r.tlevel_requirement}` : ''}`,
+                  tone: r.tlevel_status === 'accepted' ? 'volt' : r.tlevel_status === 'accepted_with_maths' ? 'cobalt' : r.tlevel_status === 'not_accepted' ? 'ink' : 'plain',
+                },
+                chips: [
+                  r.russell_group ? 'Russell Group' : null,
+                  r.foundation_year ? 'Foundation year available' : null,
+                  r.sandwich_year ? 'Placement year available' : null,
+                  r.location_name && r.location_name !== r.university ? r.location_name : null,
+                  origin && r.distance_km != null ? `${miles(r.distance_km)} away` : null,
+                ].filter((x): x is string => !!x),
+                href: `/universities/${r.id}`,
+              }))}
+            />
+          ) : rows.length ? (
             <ul className="grid gap-3">
               {rows.map((r) => (
                 <CourseCard key={r.id} r={r} showDistance={!!origin} />
@@ -73,11 +102,11 @@ export default async function UniversitiesPage({ searchParams }: Props) {
           )}
           {pages > 1 ? (
             <nav aria-label="Pages" className="flex items-center gap-3 text-sm">
-              {s.page > 1 ? <Link className="border-2 border-ink px-3 py-1 font-semibold hover:bg-volt" href={uniHref(s, { page: s.page - 1 })}>Previous</Link> : null}
+              {s.page > 1 ? <Link className="border-2 border-ink px-3 py-1 font-semibold hover:bg-volt" href={withView(uniHref(s, { page: s.page - 1 }))}>Previous</Link> : null}
               <span>
                 Page {s.page} of {Math.min(pages, 100)}
               </span>
-              {s.page < Math.min(pages, 100) ? <Link className="border-2 border-ink px-3 py-1 font-semibold hover:bg-volt" href={uniHref(s, { page: s.page + 1 })}>Next</Link> : null}
+              {s.page < Math.min(pages, 100) ? <Link className="border-2 border-ink px-3 py-1 font-semibold hover:bg-volt" href={withView(uniHref(s, { page: s.page + 1 }))}>Next</Link> : null}
             </nav>
           ) : null}
           <p className="text-xs text-slate-500">
@@ -117,6 +146,7 @@ function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }
             university-wide statement
           </span>
         ) : null}
+        {r.russell_group ? <span className="border border-ink px-2 py-0.5 text-xs font-medium">Russell Group</span> : null}
         {r.on_dfe_tlevel_list ? <span className="border border-ink px-2 py-0.5 text-xs font-medium">On DfE T Level list</span> : null}
         {extras.map((e) => (
           <span key={e} className="border border-ink px-2 py-0.5 text-xs font-medium">
@@ -151,17 +181,20 @@ function Legend() {
   );
 }
 
-function Filters({ s }: { s: UniSearch }) {
+function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
   return (
     <div className="grid gap-4 border-2 border-ink bg-white p-4 text-sm">
       {/* The postcode goes through /go so only its first half ever reaches a URL. */}
       <form method="post" action="/go" className="grid gap-2">
         <input type="hidden" name="dest" value="universities" />
+        {cards ? <input type="hidden" name="view" value="cards" /> : null}
         {s.group ? <input type="hidden" name="group" value={s.group} /> : <input type="hidden" name="group" value="all" />}
         {s.status.map((st) => <input key={st} type="hidden" name="status" value={st} />)}
         {s.q ? <input type="hidden" name="q" value={s.q} /> : null}
         {s.nation ? <input type="hidden" name="nation" value={s.nation} /> : null}
         {s.dfe ? <input type="hidden" name="dfe" value="1" /> : null}
+        {s.russell ? <input type="hidden" name="rg" value="1" /> : null}
+        {s.fy ? <input type="hidden" name="fy" value={s.fy} /> : null}
         <label className="grid gap-1">
           <span className="font-medium">Your postcode</span>
           <input name="postcode" autoComplete="postal-code" defaultValue={s.oc ?? ''} placeholder="e.g. MK45" className="border-2 border-ink px-2 py-1" />
@@ -180,6 +213,7 @@ function Filters({ s }: { s: UniSearch }) {
       </form>
 
       <Form action="/universities" className="grid gap-3">
+        {cards ? <input type="hidden" name="view" value="cards" /> : null}
         {s.oc ? <input type="hidden" name="oc" value={s.oc} /> : null}
         {s.km ? <input type="hidden" name="km" value={s.km} /> : null}
         <label className="grid gap-1">
@@ -209,6 +243,18 @@ function Filters({ s }: { s: UniSearch }) {
         <label className="flex items-center gap-2">
           <input type="checkbox" name="dfe" value="1" defaultChecked={s.dfe} />
           Only universities on DfE&apos;s T Level list
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="rg" value="1" defaultChecked={s.russell} />
+          Only Russell Group universities
+        </label>
+        <label className="grid gap-1">
+          <span className="font-medium">Foundation year</span>
+          <select name="fy" defaultValue={s.fy ?? ''} className="border-2 border-ink px-2 py-1">
+            <option value="">Either</option>
+            <option value="yes">With a foundation year</option>
+            <option value="no">Without a foundation year</option>
+          </select>
         </label>
         <label className="grid gap-1">
           <span className="font-medium">Nation</span>

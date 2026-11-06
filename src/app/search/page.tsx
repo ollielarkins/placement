@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import Form from 'next/form';
 import Link from 'next/link';
 import { PendingButton } from '@/components/PendingButton';
+import { CardStack, ViewToggle } from '@/components/CardStack';
 import { LocationForm } from '@/components/LocationForm';
 import { ResultCard } from '@/components/ResultCard';
 import { collegeTags, referenceData, searchCompanies } from '@/lib/data';
 import { PAGE_SIZE, parseSearch, searchHref, type SearchState } from '@/lib/filters';
-import { humanise } from '@/lib/format';
+import { displayName, humanise, miles } from '@/lib/format';
 import { lookupOutcode } from '@/lib/outcode';
 import { ENGLAND_REGION_LABELS } from '@/types/domain';
 
@@ -28,11 +29,13 @@ export default async function SearchPage({ searchParams }: Props) {
   const tags = await collegeTags(rows.map((r) => r.company_id));
   const pages = Math.ceil(total / PAGE_SIZE);
   const pcError = params.pcerror === '1' || (s.oc && !origin);
+  const cards = params.view === 'cards';
+  const withView = (href: string) => (cards ? `${href}${href.includes('?') ? '&' : '?'}view=cards` : href);
 
   return (
     <div className="grid gap-6">
       <section className="border-2 border-ink bg-white p-4">
-        <LocationForm reference={ref} defaults={{ oc: s.oc, km: s.km, route: s.route, spec: s.spec }} compact />
+        <LocationForm reference={ref} defaults={{ oc: s.oc, km: s.km, route: s.route, spec: s.spec }} compact cards={cards} />
         {pcError ? (
           <p role="alert" className="mt-2 text-sm text-red-700">
             We couldn&apos;t find that postcode. Try the first half only, for example MK45.
@@ -49,21 +52,39 @@ export default async function SearchPage({ searchParams }: Props) {
         {/* Phones: filters collapse so results come first. Desktop: always-open sidebar. Same GET form, no JS. */}
         <details className="border-2 border-ink bg-white lg:hidden">
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Filters and what matters to you</summary>
-          <Filters s={s} sectors={ref.sectors} bare />
+          <Filters s={s} sectors={ref.sectors} bare cards={cards} />
         </details>
         <div className="hidden lg:block">
-          <Filters s={s} sectors={ref.sectors} />
+          <Filters s={s} sectors={ref.sectors} cards={cards} />
         </div>
 
         <section aria-labelledby="results-heading" className="grid content-start gap-3">
-          <h2 id="results-heading" className="text-lg font-semibold">
-            {total.toLocaleString('en-GB')} {total === 1 ? 'employer' : 'employers'}
-            {origin ? ` within reach of ${origin.outcode}` : ' in England'}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="results-heading" className="text-lg font-semibold">
+              {total.toLocaleString('en-GB')} {total === 1 ? 'employer' : 'employers'}
+              {origin ? ` within reach of ${origin.outcode}` : ' in England'}
+            </h2>
+            <ViewToggle listHref={searchHref(s)} cardsHref={withViewOn(searchHref(s, { page: 1 }))} cards={cards} />
+          </div>
           {!origin ? (
             <p className="text-sm text-slate-600">Add your postcode to rank employers by distance as well.</p>
           ) : null}
-          {rows.length === 0 ? (
+          {cards && rows.length ? (
+            <CardStack
+              itemType="company"
+              label="placements"
+              nextPageHref={s.page < pages ? withView(searchHref(s, { page: s.page + 1 })) : null}
+              items={rows.map((r) => ({
+                id: r.company_id,
+                title: displayName(r.name),
+                subtitle: [r.distance_km != null && origin ? `${miles(r.distance_km)} away` : null, r.live_vacancies ? `${r.live_vacancies} live apprenticeship ${r.live_vacancies === 1 ? 'advert' : 'adverts'}` : null].filter(Boolean).join(' · ') || null,
+                badge: { text: `${Math.round(r.score)}/100 match`, tone: 'volt' as const },
+                chips: [...(tags.get(r.company_id) ?? []).slice(0, 2), r.data_source === 'verified' ? 'Checked by a person' : null].filter((x): x is string => !!x),
+                note: r.reasons.length ? r.reasons.join(' · ') : null,
+                href: `/companies/${r.company_id}`,
+              }))}
+            />
+          ) : rows.length === 0 ? (
             <p className="border-2 border-dashed border-ink bg-white p-6 text-slate-600">
               No employers match. Try a bigger travel distance, fewer filters, or tick &quot;show employers further
               away&quot;.
@@ -75,19 +96,20 @@ export default async function SearchPage({ searchParams }: Props) {
               ))}
             </ol>
           )}
-          {pages > 1 ? <Pager s={s} pages={pages} /> : null}
+          {pages > 1 ? <Pager s={s} pages={pages} cards={cards} /> : null}
         </section>
       </div>
     </div>
   );
 }
 
-function Filters({ s, sectors, bare = false }: { s: SearchState; sectors: string[]; bare?: boolean }) {
+function Filters({ s, sectors, bare = false, cards = false }: { s: SearchState; sectors: string[]; bare?: boolean; cards?: boolean }) {
   return (
     <Form
       action="/search"
       className={`grid content-start gap-5 p-4 text-sm ${bare ? 'border-t border-slate-100' : 'border-2 border-ink bg-white'}`}
     >
+      {cards ? <input type="hidden" name="view" value="cards" /> : null}
       {/* Location and route come from the form above; keep them. */}
       {s.oc ? <input type="hidden" name="oc" value={s.oc} /> : null}
       <input type="hidden" name="km" value={s.km} />
@@ -170,15 +192,18 @@ function Slider({ name, value, label }: { name: string; value: number; label: st
   );
 }
 
-function Pager({ s, pages }: { s: SearchState; pages: number }) {
+const withViewOn = (href: string) => `${href}${href.includes('?') ? '&' : '?'}view=cards`;
+
+function Pager({ s, pages, cards }: { s: SearchState; pages: number; cards: boolean }) {
+  const v = (h: string) => (cards ? withViewOn(h) : h);
   return (
     <nav aria-label="Pages" className="flex items-center justify-between pt-2 text-sm">
       {s.page > 1 ? (
-        <Link className="text-brand-700 underline" href={searchHref(s, { page: s.page - 1 })}>Previous</Link>
+        <Link className="text-brand-700 underline" href={v(searchHref(s, { page: s.page - 1 }))}>Previous</Link>
       ) : <span />}
       <span className="text-slate-600">Page {s.page} of {pages}</span>
       {s.page < pages ? (
-        <Link className="text-brand-700 underline" href={searchHref(s, { page: s.page + 1 })}>Next</Link>
+        <Link className="text-brand-700 underline" href={v(searchHref(s, { page: s.page + 1 }))}>Next</Link>
       ) : <span />}
     </nav>
   );

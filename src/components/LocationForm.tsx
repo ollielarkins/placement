@@ -8,14 +8,17 @@ export function LocationForm({
   defaults,
   dest = 'search',
   compact = false,
+  cards = false,
 }: {
   reference: ReferenceData;
   defaults?: { oc?: string | null; km?: number; route?: string | null; spec?: string | null };
   dest?: 'search' | 'map';
   compact?: boolean;
+  cards?: boolean; // keep card mode after changing location
 }) {
   return (
     <form method="post" action="/go" className={`grid gap-3 ${compact ? 'sm:grid-cols-2 lg:grid-cols-[minmax(7rem,9rem)_minmax(8rem,10rem)_minmax(0,1fr)_minmax(0,1fr)_auto]' : 'sm:grid-cols-2'}`}>
+      {cards ? <input type="hidden" name="view" value="cards" /> : null}
       <input type="hidden" name="dest" value={dest} />
       <label className="grid min-w-0 content-start gap-1 text-sm">
         <span className="font-bold">Your postcode</span>

@@ -63,7 +63,7 @@ export default async function ShortlistPage({ searchParams }: Props) {
   return (
     <div className="grid gap-6">
       <header className="grid gap-1">
-        <p className="text-sm"><Link href="/account" className="text-brand-700 underline">Your account</Link></p>
+        <p className="text-sm"><Link href="/account" className="text-brand-700 underline">Your account</Link> · <Link href="/account/liked" className="text-brand-700 underline">Liked</Link></p>
         <h1 className="display text-3xl sm:text-4xl">Your shortlist</h1>
         <p className="text-sm text-slate-600">
           {items.length} {items.length === 1 ? 'company' : 'companies'}

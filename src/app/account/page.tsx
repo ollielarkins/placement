@@ -66,6 +66,7 @@ export default async function AccountPage({ searchParams }: Props) {
         <Link href="/account/shortlist" className="w-fit rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50">
           Open shortlist
         </Link>
+        <Link href="/account/liked" className="w-fit text-sm text-brand-700 underline">What you liked in card mode</Link>
         <Link href="/account/drafts" className="w-fit text-sm text-brand-700 underline">Your message drafts</Link>
       </section>
 

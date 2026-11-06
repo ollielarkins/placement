@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Form from 'next/form';
 import Link from 'next/link';
 import { PendingButton } from '@/components/PendingButton';
+import { CardStack, ViewToggle } from '@/components/CardStack';
 import { SaveButton } from '@/components/SaveButton';
 import { displayName, miles, ukDate } from '@/lib/format';
 import {
@@ -32,6 +33,8 @@ export default async function ApprenticeshipsPage({ searchParams }: Props) {
     s.page === 1 ? apprenticeshipEmployers(s, origin) : Promise.resolve({ rows: [], total: 0 }),
   ]);
   const pages = Math.ceil(ads.total / 20);
+  const cards = params.view === 'cards';
+  const withView = (href: string) => (cards ? `${href}${href.includes('?') ? '&' : '?'}view=cards` : href);
 
   return (
     <div className="grid gap-6">
@@ -47,22 +50,47 @@ export default async function ApprenticeshipsPage({ searchParams }: Props) {
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <details className="border-2 border-ink bg-white lg:hidden">
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Filters</summary>
-          <Filters s={s} />
+          <Filters s={s} cards={cards} />
         </details>
         <div className="hidden lg:block">
-          <Filters s={s} />
+          <Filters s={s} cards={cards} />
         </div>
 
         <div className="grid content-start gap-8">
           <section aria-labelledby="ads" className="grid gap-3">
-            <h2 id="ads" className="text-lg font-semibold">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="ads" className="text-lg font-semibold">
               {ads.total.toLocaleString('en-GB')} live {ads.total === 1 ? 'advert' : 'adverts'}
               {origin && s.km ? ` within ${miles(s.km)} of ${origin.outcode}` : ' in England'}
             </h2>
+              <ViewToggle listHref={apprenticeshipHref(s)} cardsHref={withViewOn(apprenticeshipHref(s, { page: 1 }))} cards={cards} />
+            </div>
             {s.oc && !origin ? (
               <p role="alert" className="text-sm text-red-700">We couldn&apos;t find that postcode. Try the first half only, for example MK45.</p>
             ) : null}
-            {ads.rows.length ? (
+            {cards ? (
+              <CardStack
+                itemType="vacancy"
+                label="apprenticeships"
+                nextPageHref={s.page < Math.min(pages, 100) ? withView(apprenticeshipHref(s, { page: s.page + 1 })) : null}
+                items={ads.rows.map((r) => ({
+                  id: r.id,
+                  title: r.title,
+                  subtitle: displayName(r.employer),
+                  badge: r.tlevel_mention ? { text: 'Mentions T Levels', tone: 'volt' as const } : null,
+                  chips: [
+                    r.course_level ? LEVEL_LABEL[r.course_level] ?? null : r.level,
+                    r.course_title,
+                    r.wage_text,
+                    r.closing_date ? `Closes ${ukDate(r.closing_date)}` : null,
+                    origin && r.distance_km != null ? `${miles(r.distance_km)} away` : r.postcode?.split(' ')[0] ?? null,
+                  ].filter((x): x is string => !!x),
+                  note: r.tlevel_mention ? `“${r.tlevel_mention}”` : null,
+                  href: r.url ?? `/companies/${r.company_id}`,
+                  external: !!r.url,
+                }))}
+              />
+            ) : ads.rows.length ? (
               <ul className="grid gap-3">
                 {ads.rows.map((r) => (
                   <Advert key={r.id} r={r} showDistance={!!origin} />
@@ -73,16 +101,16 @@ export default async function ApprenticeshipsPage({ searchParams }: Props) {
             )}
             {pages > 1 ? (
               <nav aria-label="Pages" className="flex items-center gap-3 text-sm">
-                {s.page > 1 ? <Link className="border-2 border-ink px-3 py-1 font-semibold hover:bg-volt" href={apprenticeshipHref(s, { page: s.page - 1 })}>Previous</Link> : null}
+                {s.page > 1 ? <Link className="border-2 border-ink px-3 py-1 font-semibold hover:bg-volt" href={withView(apprenticeshipHref(s, { page: s.page - 1 }))}>Previous</Link> : null}
                 <span>
                   Page {s.page} of {Math.min(pages, 100)}
                 </span>
-                {s.page < Math.min(pages, 100) ? <Link className="border-2 border-ink px-3 py-1 font-semibold hover:bg-volt" href={apprenticeshipHref(s, { page: s.page + 1 })}>Next</Link> : null}
+                {s.page < Math.min(pages, 100) ? <Link className="border-2 border-ink px-3 py-1 font-semibold hover:bg-volt" href={withView(apprenticeshipHref(s, { page: s.page + 1 }))}>Next</Link> : null}
               </nav>
             ) : null}
           </section>
 
-          {s.page === 1 ? (
+          {s.page === 1 && !cards ? (
             <section aria-labelledby="schemes" className="grid gap-3">
               <h2 id="schemes" className="text-lg font-semibold">
                 Employers with apprenticeship schemes{origin && s.km ? ` near ${origin.outcode}` : ''}
@@ -170,11 +198,14 @@ function Advert({ r, showDistance }: { r: AdvertRow; showDistance: boolean }) {
   );
 }
 
-function Filters({ s }: { s: ApprenticeshipSearch }) {
+const withViewOn = (href: string) => `${href}${href.includes('?') ? '&' : '?'}view=cards`;
+
+function Filters({ s, cards }: { s: ApprenticeshipSearch; cards: boolean }) {
   return (
     <div className="grid gap-4 border-2 border-ink bg-white p-4 text-sm">
       <form method="post" action="/go" className="grid gap-2">
         <input type="hidden" name="dest" value="apprenticeships" />
+        {cards ? <input type="hidden" name="view" value="cards" /> : null}
         {s.q ? <input type="hidden" name="q" value={s.q} /> : null}
         {s.level ? <input type="hidden" name="level" value={s.level} /> : null}
         {s.tlevel ? <input type="hidden" name="tlevel" value="1" /> : null}
@@ -195,6 +226,7 @@ function Filters({ s }: { s: ApprenticeshipSearch }) {
         <PendingButton className="border-2 border-ink bg-ink px-3 py-1.5 font-bold text-volt hover:bg-volt hover:text-ink" pendingText="Finding…">Set location</PendingButton>
       </form>
       <Form action="/apprenticeships" className="grid gap-3">
+        {cards ? <input type="hidden" name="view" value="cards" /> : null}
         {s.oc ? <input type="hidden" name="oc" value={s.oc} /> : null}
         {s.km !== 40 ? <input type="hidden" name="km" value={s.km} /> : null}
         <label className="grid gap-1">

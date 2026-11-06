@@ -20,6 +20,7 @@ export default async function CoursePage({ params }: Props) {
   const facts: [string, string][] = [
     ['Qualification', c.qualification ?? 'Not stated'],
     ['Subject area', c.subject_group in SUBJECT_GROUPS ? SUBJECT_GROUPS[c.subject_group as keyof typeof SUBJECT_GROUPS] : 'Other'],
+    ['Russell Group', c.university.russell_group ? 'Yes' : 'No'],
     ['Where', [c.location_name, c.university.nation ? NATIONS[c.university.nation] : null].filter(Boolean).join(', ') || 'Not stated'],
     // Only codes shaped like UCAS course codes (H600, H6H3); some providers send internal numbers.
     ['UCAS course code', c.ucas_codes.filter((x) => /^(?=.*[A-Z])[A-Z0-9]{4}$/.test(x)).join(', ') || 'See the course page'],
