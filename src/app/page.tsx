@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { LocationForm } from '@/components/LocationForm';
-import { referenceData, regionCounts } from '@/lib/data';
+import { referenceData, regionCounts, siteStats } from '@/lib/data';
 
 export const revalidate = 3600;
 
 export default async function HomePage() {
-  const [ref, counts] = await Promise.all([referenceData(), regionCounts()]);
+  const [ref, counts, stats] = await Promise.all([referenceData(), regionCounts(), siteStats()]);
   const totals = counts.filter((c) => c.county === null);
-  const all = totals.reduce((n, c) => n + c.companies, 0);
-  const verified = totals.reduce((n, c) => n + c.verified, 0);
+  const all = stats?.employers ?? totals.reduce((n, c) => n + c.companies, 0);
+  const verified = stats?.verified ?? totals.reduce((n, c) => n + c.verified, 0);
   const withVacancies = totals.reduce((n, c) => n + c.with_vacancies, 0);
 
   return (
@@ -39,10 +39,39 @@ export default async function HomePage() {
         </section>
       </section>
 
-      <section aria-label="What's in here" className="grid border-2 border-ink bg-white sm:grid-cols-3">
-        <Stat value={all} label="engineering employers in England" />
-        <Stat value={verified} label="checked by a person for T Level placements" highlight />
-        <Stat value={withVacancies} label="with live apprenticeship adverts" />
+      <section aria-label="What's in here" className={`grid border-2 border-ink bg-white ${stats ? 'lg:grid-cols-4' : 'sm:grid-cols-3'}`}>
+        <Stat value={all} label="engineering employers in England" wide={!!stats} />
+        {stats ? (
+          <Stat value={stats.employers_with_contacts} label="with a way to get in touch: careers page, email, phone or form" highlight wide />
+        ) : (
+          <Stat value={verified} label="checked by a person for T Level placements" highlight />
+        )}
+        <Stat value={stats?.live_adverts ?? withVacancies} label={stats ? 'live engineering apprenticeship adverts' : 'employers with live apprenticeship adverts'} wide={!!stats} />
+        {stats ? <Stat value={stats.uni_courses_labelled} label={`degree courses with a clear T Level answer, out of ${stats.uni_courses.toLocaleString('en-GB')}`} wide /> : null}
+      </section>
+
+      <section aria-labelledby="paths" className="grid gap-4">
+        <h2 id="paths" className="display text-3xl sm:text-4xl">Three ways forward</h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Path
+            href="/search"
+            tag="Now"
+            title="Placements"
+            cta="Find a placement"
+            accent="bg-volt"
+          >
+            Your 315 hours. Every engineering employer in England, ranked for your specialism and how far you can travel,
+            with the reasons shown and how to get in touch.
+          </Path>
+          <Path href="/apprenticeships" tag="After" title="Apprenticeships" cta="See apprenticeships" accent="bg-cobalt text-white">
+            Live engineering adverts, with any T Level mention quoted. Higher and degree apprenticeships (level 4 to 7) are
+            the usual next step after a T Level.
+          </Path>
+          <Path href="/universities" tag="After" title="Universities" cta="Check degrees" accent="bg-ink text-volt">
+            Which degrees take your T Level: on its own, with A level Maths, case by case or not at all. We quote the
+            course page so you can check it yourself.
+          </Path>
+        </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
@@ -53,7 +82,8 @@ export default async function HomePage() {
           Every company gets a score out of 100, with the reasons spelled out. You choose what matters most.
         </Step>
         <Step n="03" title="Get in touch">
-          Save a shortlist, track who you’ve contacted, and get help drafting your first message.
+          Each employer shows its careers page, role email, switchboard or contact form. Save a shortlist, track who you’ve
+          contacted, and get help drafting your first message.
         </Step>
       </section>
 
@@ -66,12 +96,46 @@ export default async function HomePage() {
   );
 }
 
-function Stat({ value, label, highlight = false }: { value: number; label: string; highlight?: boolean }) {
+function Stat({ value, label, highlight = false, wide = false }: { value: number; label: string; highlight?: boolean; wide?: boolean }) {
+  // Stacked on phones; side by side from sm (three figures) or lg (four).
+  const borders = wide
+    ? 'not-last:border-b-2 lg:not-last:border-b-0 lg:not-last:border-r-2'
+    : 'not-last:border-b-2 sm:not-last:border-b-0 sm:not-last:border-r-2';
   return (
-    <div className={`grid gap-1 border-ink p-5 not-last:border-b-2 sm:not-last:border-b-0 sm:not-last:border-r-2 ${highlight ? 'bg-volt' : ''}`}>
+    <div className={`grid gap-1 border-ink p-5 ${borders} ${highlight ? 'bg-volt' : ''}`}>
       <div className="display text-4xl tabular-nums sm:text-5xl">{value.toLocaleString('en-GB')}</div>
       <div className="text-sm font-medium">{label}</div>
     </div>
+  );
+}
+
+function Path({
+  href,
+  tag,
+  title,
+  cta,
+  accent,
+  children,
+}: {
+  href: string;
+  tag: string;
+  title: string;
+  cta: string;
+  accent: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group grid content-start gap-3 border-2 border-ink bg-white p-5 transition hover:-translate-y-1 hover:shadow-hard"
+    >
+      <span className={`w-fit px-2 py-0.5 text-xs font-bold tracking-[0.15em] ${accent}`}>{tag.toUpperCase()}</span>
+      <h3 className="display text-2xl">{title}</h3>
+      <p className="text-slate-700">{children}</p>
+      <span className="font-bold underline decoration-volt decoration-4 underline-offset-4 group-hover:decoration-ink">
+        {cta} →
+      </span>
+    </Link>
   );
 }
 

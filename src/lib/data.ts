@@ -198,3 +198,29 @@ export function regionCounts(): Promise<RegionCount[]> {
     return (data ?? []) as RegionCount[];
   });
 }
+
+export interface SiteStats {
+  employers: number;
+  verified: number;
+  employers_with_contacts: number;
+  contacts: number;
+  live_adverts: number;
+  apprenticeship_employers: number;
+  uni_courses: number;
+  uni_courses_labelled: number;
+  universities: number;
+  refreshed_at: string;
+}
+
+/** Home page figures (migration 0027), or null if unavailable: the page then hides them. */
+export async function siteStats(): Promise<SiteStats | null> {
+  try {
+    return await cached('site_stats', 60 * 60 * 1000, async () => {
+      const { data, error } = await publicDb().rpc('site_stats');
+      if (error || !data) throw new Error(error?.message ?? 'no data');
+      return data as SiteStats;
+    });
+  } catch {
+    return null;
+  }
+}
