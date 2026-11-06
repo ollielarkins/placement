@@ -122,6 +122,8 @@ export interface UniSearch {
   nation: Nation | null;
   dfe: boolean;
   russell: boolean;
+  /** UKPRNs of universities to leave out. */
+  hide: string[];
   fy: 'yes' | 'no' | null; // foundation year available / not
   sort: UniSort;
   page: number;
@@ -140,6 +142,7 @@ export function parseUniSearch(p: Params): UniSearch {
     nation: nation && nation in NATIONS ? (nation as Nation) : null,
     dfe: one(p, 'dfe') === '1',
     russell: one(p, 'rg') === '1',
+    hide: [...new Set(many(p, 'xu').filter((x) => /^[0-9]{8}$/.test(x)))].slice(0, 100),
     fy: one(p, 'fy') === 'yes' ? 'yes' : one(p, 'fy') === 'no' ? 'no' : null,
     sort: (UNI_SORTS as readonly string[]).includes(one(p, 'sort') ?? '') ? (one(p, 'sort') as UniSort) : 'default',
     page: int(one(p, 'page'), 1, 100, 1),
@@ -157,6 +160,7 @@ export function uniHref(s: UniSearch, over: Partial<UniSearch> = {}): string {
   if (v.nation) u.set('nation', v.nation);
   if (v.dfe) u.set('dfe', '1');
   if (v.russell) u.set('rg', '1');
+  for (const x of v.hide) u.append('xu', x);
   if (v.fy) u.set('fy', v.fy);
   if (v.sort !== 'default') u.set('sort', v.sort);
   if (v.page > 1) u.set('page', String(v.page));
@@ -215,8 +219,30 @@ export async function searchUniCourses(s: UniSearch, origin: OutcodeCentroid | n
   if (s.group) p.group = s.group;
   if (s.nation) p.nation = s.nation;
   if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
+  if (s.hide.length) p.hide = s.hide;
   const rows = await cachedRpc<CourseRow[]>('search_uni_courses', p);
   return { rows, total: Number(rows[0]?.total ?? 0) };
+}
+
+export interface UniFacet {
+  ukprn: string;
+  name: string;
+  courses: number;
+}
+
+/** Every university in the search (hidden ones included) with its course count, for the filter list. */
+export async function uniCourseUniversities(s: UniSearch, origin: OutcodeCentroid | null): Promise<UniFacet[]> {
+  const p: Record<string, unknown> = { dfe_list: s.dfe, russell: s.russell };
+  if (s.fy) p.foundation = s.fy;
+  if (s.q) p.q = s.q;
+  if (s.status.length) p.status = s.status;
+  if (s.group) p.group = s.group;
+  if (s.nation) p.nation = s.nation;
+  if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
+  const rows = await cachedRpc<UniFacet[]>('uni_course_universities', p);
+  // "University of Bath" files under B, next to "Bath Spa University".
+  const key = (n: string) => n.replace(/^(the\s+)?university\s+(of\s+(the\s+)?)?/i, '').toLowerCase();
+  return rows.map((r) => ({ ...r, courses: Number(r.courses) })).sort((a, b) => key(a.name).localeCompare(key(b.name), 'en-GB'));
 }
 
 export interface CourseDetail {

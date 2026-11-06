@@ -22,6 +22,8 @@ import {
   rankStats,
   rankText,
   searchUniCourses,
+  uniCourseUniversities,
+  type UniFacet,
   uniHref,
   type CourseRow,
   type UniSearch,
@@ -40,7 +42,7 @@ export default async function UniversitiesPage({ searchParams }: Props) {
   const params = await searchParams;
   const s = parseUniSearch(params);
   const origin = s.oc ? await lookupOutcode(s.oc).catch(() => null) : null;
-  const { rows, total } = await searchUniCourses(s, origin);
+  const [{ rows, total }, unis] = await Promise.all([searchUniCourses(s, origin), uniCourseUniversities(s, origin)]);
   const pages = Math.ceil(total / UNI_PAGE_SIZE);
   const cards = params.view === 'cards';
   const withView = (href: string) => (cards ? `${href}&view=cards` : href);
@@ -58,10 +60,10 @@ export default async function UniversitiesPage({ searchParams }: Props) {
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
         <details className="border-2 border-ink bg-white lg:hidden">
           <summary className="cursor-pointer px-4 py-3 text-sm font-medium">Filters</summary>
-          <Filters s={s} cards={cards} />
+          <Filters s={s} cards={cards} unis={unis} />
         </details>
         <div className="hidden lg:block">
-          <Filters s={s} cards={cards} />
+          <Filters s={s} cards={cards} unis={unis} />
         </div>
 
         <section aria-labelledby="results" className="grid content-start gap-3">
@@ -77,6 +79,24 @@ export default async function UniversitiesPage({ searchParams }: Props) {
           </div>
           {s.oc && !origin ? (
             <p role="alert" className="text-sm text-red-700">We couldn&apos;t find that postcode. Try the first half only, for example MK45.</p>
+          ) : null}
+          {s.hide.length ? (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">Hidden:</span>
+              {s.hide.map((x) => (
+                <Link
+                  key={x}
+                  href={withView(uniHref(s, { hide: s.hide.filter((y) => y !== x), page: 1 }))}
+                  className="border-2 border-ink bg-white px-2 py-0.5 hover:bg-volt"
+                  aria-label={`Show ${unis.find((u) => u.ukprn === x)?.name ?? 'this university'} again`}
+                >
+                  {unis.find((u) => u.ukprn === x)?.name ?? x} ✕
+                </Link>
+              ))}
+              <Link href={withView(uniHref(s, { hide: [], page: 1 }))} className="underline">
+                Show all
+              </Link>
+            </div>
           ) : null}
           {cards ? null : <Legend />}
           {cards ? (
@@ -263,7 +283,7 @@ function Legend() {
   );
 }
 
-function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
+function Filters({ s, cards, unis }: { s: UniSearch; cards: boolean; unis: UniFacet[] }) {
   return (
     <div className="grid gap-4 border-2 border-ink bg-white p-4 text-sm">
       {/* The postcode goes through /go so only its first half ever reaches a URL. */}
@@ -276,6 +296,7 @@ function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
         {s.nation ? <input type="hidden" name="nation" value={s.nation} /> : null}
         {s.dfe ? <input type="hidden" name="dfe" value="1" /> : null}
         {s.russell ? <input type="hidden" name="rg" value="1" /> : null}
+        {s.hide.map((x) => <input key={x} type="hidden" name="xu" value={x} />)}
         {s.fy ? <input type="hidden" name="fy" value={s.fy} /> : null}
         {s.sort !== 'default' ? <input type="hidden" name="sort" value={s.sort} /> : null}
         <label className="grid gap-1">
@@ -351,11 +372,44 @@ function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
             ))}
           </select>
         </label>
+        <HideUniversities s={s} unis={unis} />
         <PendingButton className="border-2 border-ink bg-volt px-3 py-1.5 font-bold hover:-translate-y-0.5 hover:shadow-hard-sm" pendingText="Searching…" resetKey={uniHref(s)}>Show courses</PendingButton>
         <Link href="/universities" className="text-center underline">
           Clear filters
         </Link>
       </Form>
     </div>
+  );
+}
+
+/**
+ * Every university in the current search, ticked to hide it. Lives inside the
+ * filter form, so hidden ones are sent with the other filters as xu=UKPRN.
+ */
+function HideUniversities({ s, unis }: { s: UniSearch; unis: UniFacet[] }) {
+  const hidden = new Set(s.hide);
+  // Hidden universities that no longer match the other filters still need a box, or they'd be lost.
+  const list = [...unis, ...s.hide.filter((x) => !unis.some((u) => u.ukprn === x)).map((x) => ({ ukprn: x, name: `University ${x}`, courses: 0 }))];
+  return (
+    <details className="border-2 border-ink" open={hidden.size > 0}>
+      <summary className="cursor-pointer px-2 py-1.5 font-medium">
+        Hide universities{hidden.size ? ` (${hidden.size} hidden)` : ''}
+      </summary>
+      <p className="px-2 pt-1 text-xs text-slate-600">
+        Tick any you don&apos;t want to see, then press Show courses. {list.length} in this search.
+      </p>
+      <ul className="max-h-72 overflow-y-auto px-2 py-1">
+        {list.map((u) => (
+          <li key={u.ukprn}>
+            <label className="flex items-start gap-2 py-0.5">
+              <input type="checkbox" name="xu" value={u.ukprn} defaultChecked={hidden.has(u.ukprn)} className="mt-1" />
+              <span className={hidden.has(u.ukprn) ? 'text-slate-500 line-through' : ''}>
+                {u.name} <span className="text-xs text-slate-500">({u.courses})</span>
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
