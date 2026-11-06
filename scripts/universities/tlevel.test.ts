@@ -109,3 +109,23 @@ test('maths "still required" after the T Level line; letter grades named', () =>
   assert.equal(read('<p>T-Level</p><p>Distinction T-Level in Design and Development for Engineering and Manufacturing only. GCE A-Level Maths is still required.</p>').status, 'accepted_with_maths');
   assert.equal(read('<p>D overall with grade A* in the core in a Design and Development for Engineering and Manufacturing T Level plus grade A in A level Mathematics.</p>').requirement, 'Distinction');
 });
+
+test('requirement hidden behind a qualification drop-down (Imperial)', () => {
+  const html = '<select><option value="111">A levels</option><option value="1781370">T Levels</option></select>' +
+    '<div class="js-qualification" data-code="111"><p>A*A*A</p></div>' +
+    '<div class="js-qualification" data-code="1781370"> <p>This qualification is not accepted for entry to this programme.</p> </div>';
+  const r = read(html);
+  assert.equal(r.status, 'not_accepted');
+  assert.equal(r.quote, 'T Levels: This qualification is not accepted for entry to this programme.');
+});
+
+test('saved readings file parses quoted CSV', async () => {
+  const { writeFileSync, mkdtempSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const { loadReadings } = await import('./assess-courses.ts');
+  const f = join(mkdtempSync(join(tmpdir(), 'rd-')), 'r.csv');
+  writeFileSync(f, 'ukprn,kis_course_id,kis_mode,status,requirement,quote\n10007783,EEE1,01,accepted,"96–112 UCAS points, incl. maths","T Levels: ""No"" specific subjects, required."\n');
+  const r = loadReadings(f).get('10007783|EEE1|1')!;
+  assert.deepEqual(r, { status: 'accepted', requirement: '96–112 UCAS points, incl. maths', quote: 'T Levels: "No" specific subjects, required.' });
+});

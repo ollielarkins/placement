@@ -34,7 +34,44 @@ interface Course {
   title: string;
   university: string;
   course_url: string;
+  key: string; // ukprn|kis_course_id|kis_mode
 }
+
+type Readings = Map<string, { status: Reading['status']; requirement: string | null; quote: string }>;
+
+/**
+ * Readings of unclear wording made by hand (data/uni-tlevel-readings.csv,
+ * read by Claude in a build session on 06/11/2026). Used only while the
+ * exact quote is still on the page, so a changed page falls back to the
+ * rules instead of keeping a stale answer.
+ */
+export function loadReadings(path = 'data/uni-tlevel-readings.csv'): Readings {
+  const out: Readings = new Map();
+  if (!existsSync(path)) return out;
+  const lines = readFileSync(path, 'utf8').split(/\r?\n/).slice(1).filter(Boolean);
+  for (const line of lines) {
+    const cols: string[] = [];
+    let cur = '';
+    let q = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]!;
+      if (q) {
+        if (ch === '"' && line[i + 1] === '"') (cur += '"', i++);
+        else if (ch === '"') q = false;
+        else cur += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ',') (cols.push(cur), (cur = ''));
+      else cur += ch;
+    }
+    cols.push(cur);
+    const [ukprn, kis, mode, status, requirement, quote] = cols;
+    if (ukprn && kis && mode && status && quote)
+      out.set(`${ukprn}|${kis}|${Number.parseInt(mode, 10)}`, { status: status as Reading['status'], requirement: requirement || null, quote });
+  }
+  return out;
+}
+
+const squash = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
 
 interface Result extends Reading {
   quoteUrl: string | null;
@@ -62,7 +99,7 @@ export function entryRequirementLinks(html: string, pageUrl: string): string[] {
   return [...new Set(out)].slice(0, 1);
 }
 
-async function assess(f: PoliteFetcher, c: Course, apiKey: string | null): Promise<Result> {
+async function assess(f: PoliteFetcher, c: Course, apiKey: string | null, readings: Readings): Promise<Result> {
   const pages: { url: string; text: string }[] = [];
   const first = await f.get(c.course_url);
   if (!first) return { status: 'unknown', requirement: null, quote: null, ambiguous: false, quoteUrl: null, alevel: null, by: 'rules' };
@@ -79,7 +116,11 @@ async function assess(f: PoliteFetcher, c: Course, apiKey: string | null): Promi
     if (!passages.length) continue;
     let r = readTLevels(passages);
     let by: Result['by'] = 'rules';
-    if (r.ambiguous && apiKey) {
+    const saved = r.status === 'unknown' ? readings.get(c.key) : undefined;
+    if (saved && passages.some((x) => squash(x).includes(squash(saved.quote)))) {
+      r = { status: saved.status, requirement: saved.requirement, quote: saved.quote, ambiguous: false };
+      by = 'claude';
+    } else if (r.ambiguous && apiKey) {
       const ai = await classifyWithClaude(passages, c, apiKey).catch((err) => {
         console.error(`${c.university} / ${c.title}: Claude failed: ${(err as Error).message}`);
         return null;
@@ -109,11 +150,13 @@ async function main() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
   const f = new PoliteFetcher(process.env.CRAWLER_CONTACT ?? '');
   const apiKey = values['no-claude'] ? null : (process.env.ANTHROPIC_API_KEY ?? null);
+  const readings = loadReadings();
+  console.log(`${readings.size} saved readings of unclear wording (data/uni-tlevel-readings.csv)`);
   if (!apiKey) console.log('Claude pass off (no ANTHROPIC_API_KEY or --no-claude): unclear wording stays "unknown"');
   const db = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 4, connectionTimeoutMillis: 20_000, query_timeout: 60_000 });
   const limit = values.limit ? Number.parseInt(values.limit, 10) : 1_000_000;
   const { rows } = await db.query<Course>(
-    `select c.id, c.title, u.name as university, c.course_url
+    `select c.id, c.title, u.name as university, c.course_url, u.ukprn || '|' || c.kis_course_id || '|' || c.kis_mode as key
        from public.uni_courses c join public.universities u on u.id = c.university_id
       where c.course_url is not null
         and (c.tlevel_assessed_at is null or c.tlevel_assessed_at < now() - interval '60 days')
@@ -137,7 +180,7 @@ async function main() {
       let r: Result;
       try {
         r = await Promise.race([
-          assess(f, c, apiKey),
+          assess(f, c, apiKey, readings),
           new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 120_000)),
         ]);
       } catch {

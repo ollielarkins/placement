@@ -25,9 +25,27 @@ export interface Reading {
 const T_LEVEL = /\bT[\s-]?Levels?\b/gi;
 const HAS_T_LEVEL = /\bT[\s-]?Levels?\b/i;
 
+/**
+ * Requirement blocks hidden behind a qualification drop-down (Imperial and
+ * similar): <option value="123">T Levels</option> ... <div data-code="123">text</div>.
+ * Returned as "T Levels: text" lines so the normal reader sees them.
+ */
+export function dropdownTLevelText(html: string): string[] {
+  const out: string[] = [];
+  for (const o of html.matchAll(/<option[^>]*\bvalue="([^"]{1,40})"[^>]*>\s*([^<]*\bT[\s-]?Levels?\b[^<]*?)\s*</gi)) {
+    const code = o[1]!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const block = new RegExp(`data-(?:code|value|qualification)="${code}"[^>]*>([\\s\\S]{0,2000}?)</(?:div|section|li)>`, 'i').exec(html);
+    if (!block) continue;
+    const text = block[1]!.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+    if (text) out.push(`${o[2]!.trim()}: ${text.slice(0, 500)}`);
+  }
+  return out;
+}
+
 /** Visible text of a page, with line breaks kept at block boundaries. */
 export function pageText(html: string): string {
-  return html
+  const hidden = dropdownTLevelText(html);
+  return (hidden.length ? `${hidden.join('\n')}\n` : '') + html
     .replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<\s*(br|\/p|\/li|\/h[1-6]|\/tr|\/div|\/dd|\/dt)\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
