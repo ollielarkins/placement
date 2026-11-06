@@ -12,6 +12,8 @@ import {
   CUG_URL,
   NATIONS,
   STATUS_ORDER,
+  UNI_SORTS,
+  UNI_SORT_LABEL,
   SUBJECT_GROUPS,
   TLEVEL_STATUS,
   UNI_PAGE_SIZE,
@@ -67,7 +69,10 @@ export default async function UniversitiesPage({ searchParams }: Props) {
               {total.toLocaleString('en-GB')} {total === 1 ? 'course' : 'courses'}
               {origin && s.km ? ` within ${miles(s.km)} of ${origin.outcode}` : ''}
             </h2>
-            <ViewToggle listHref={uniHref(s)} cardsHref={`${uniHref(s, { page: 1 })}&view=cards`} cards={cards} />
+            <div className="flex flex-wrap items-center gap-2">
+              <SortMenu s={s} hasOrigin={!!origin} cards={cards} />
+              <ViewToggle listHref={uniHref(s)} cardsHref={`${uniHref(s, { page: 1 })}&view=cards`} cards={cards} />
+            </div>
           </div>
           {s.oc && !origin ? (
             <p role="alert" className="text-sm text-red-700">We couldn&apos;t find that postcode. Try the first half only, for example MK45.</p>
@@ -88,6 +93,7 @@ export default async function UniversitiesPage({ searchParams }: Props) {
                 },
                 stats: rankStats(r),
                 chips: [
+                  sortValue(r, s.sort),
                   ...secondaryRanks(r),
                   r.russell_group ? 'Russell Group' : null,
                   r.foundation_year ? 'Foundation year available' : null,
@@ -101,7 +107,7 @@ export default async function UniversitiesPage({ searchParams }: Props) {
           ) : rows.length ? (
             <ul className="grid gap-3">
               {rows.map((r) => (
-                <CourseCard key={r.id} r={r} showDistance={!!origin} />
+                <CourseCard key={r.id} r={r} showDistance={!!origin} sort={s.sort} />
               ))}
             </ul>
           ) : (
@@ -143,9 +149,43 @@ function secondaryRanks(r: CourseRow): string[] {
   ].filter((x): x is string => !!x);
 }
 
-function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }) {
+/** The measure being sorted on, shown on each course so the order makes sense. */
+function sortValue(r: CourseRow, sort: UniSearch['sort']): string | null {
+  if (sort === 'satisfaction') return r.satisfaction_pct != null ? `${r.satisfaction_pct}% satisfied` : 'No satisfaction data';
+  if (sort === 'salary') return r.median_salary != null ? `£${r.median_salary.toLocaleString('en-GB')} median graduate salary` : 'No salary data';
+  return null;
+}
+
+/** "Sort by" menu: plain links, so it works instantly and without JavaScript. */
+function SortMenu({ s, hasOrigin, cards }: { s: UniSearch; hasOrigin: boolean; cards: boolean }) {
+  const href = (sort: UniSearch['sort']) => `${uniHref(s, { sort, page: 1 })}${cards ? '&view=cards' : ''}`;
+  return (
+    <details className="relative">
+      <summary className="flex cursor-pointer list-none items-center gap-2 border-2 border-ink bg-white px-3 py-1 text-sm font-semibold hover:bg-volt">
+        <span className="text-slate-600">Sort by</span> {UNI_SORT_LABEL[s.sort]} <span aria-hidden>▾</span>
+      </summary>
+      <ul className="absolute right-0 z-20 mt-1 grid w-64 border-2 border-ink bg-white text-sm shadow-hard">
+        {UNI_SORTS.filter((k) => k !== 'nearest' || hasOrigin).map((k) => (
+          <li key={k}>
+            <Link
+              href={href(k)}
+              aria-current={k === s.sort ? 'true' : undefined}
+              className={`block px-3 py-2 ${k === s.sort ? 'bg-ink font-bold text-volt' : 'hover:bg-volt'}`}
+            >
+              {UNI_SORT_LABEL[k]}
+            </Link>
+          </li>
+        ))}
+        {!hasOrigin ? <li className="px-3 py-2 text-xs text-slate-500">Set your postcode to sort by distance.</li> : null}
+      </ul>
+    </details>
+  );
+}
+
+function CourseCard({ r, showDistance, sort }: { r: CourseRow; showDistance: boolean; sort: UniSearch['sort'] }) {
   const stats = rankStats(r);
   const ranks = secondaryRanks(r);
+  const sorted = sortValue(r, sort);
   const extras = [r.foundation_year ? 'Foundation year available' : null, r.sandwich_year ? 'Placement year available' : null].filter(Boolean);
   return (
     <li className="border-2 border-ink bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-hard">
@@ -165,6 +205,7 @@ function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }
         </div>
         <SaveCourseButton courseId={r.id} compact />
       </div>
+      {sorted ? <p className="mt-2 w-fit bg-ink px-2 py-0.5 text-sm font-bold text-volt">{sorted}</p> : null}
       {stats.length ? (
         <div className="mt-3 border-l-8 border-volt pl-3">
           <RankStats stats={stats} />
@@ -255,6 +296,7 @@ function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
 
       <Form action="/universities" className="grid gap-3">
         {cards ? <input type="hidden" name="view" value="cards" /> : null}
+        {s.sort !== 'default' ? <input type="hidden" name="sort" value={s.sort} /> : null}
         {s.oc ? <input type="hidden" name="oc" value={s.oc} /> : null}
         {s.km ? <input type="hidden" name="km" value={s.km} /> : null}
         <label className="grid gap-1">
@@ -295,14 +337,6 @@ function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
             <option value="">Either</option>
             <option value="yes">With a foundation year</option>
             <option value="no">Without a foundation year</option>
-          </select>
-        </label>
-        <label className="grid gap-1">
-          <span className="font-medium">Order</span>
-          <select name="sort" defaultValue={s.sort} className="border-2 border-ink px-2 py-1">
-            <option value="default">T Level entry first</option>
-            <option value="cug">{CUG_NAME} position</option>
-            <option value="rank">Our open-data rank</option>
           </select>
         </label>
         <label className="grid gap-1">

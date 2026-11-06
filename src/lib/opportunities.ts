@@ -86,6 +86,21 @@ export const NATIONS: Record<Nation, string> = {
   northern_ireland: 'Northern Ireland',
 };
 
+/** Sort orders for university courses (search_uni_courses, 0033). */
+export const UNI_SORTS = ['default', 'easiest', 'cug', 'cug_uni', 'rank', 'satisfaction', 'salary', 'nearest', 'name'] as const;
+export type UniSort = (typeof UNI_SORTS)[number];
+export const UNI_SORT_LABEL: Record<UniSort, string> = {
+  default: 'Best T Level fit',
+  easiest: 'Easiest T Level entry',
+  cug: 'League table: subject',
+  cug_uni: 'League table: university',
+  rank: 'Our open-data rank',
+  satisfaction: 'Student satisfaction',
+  salary: 'Graduate salary',
+  nearest: 'Nearest to you',
+  name: 'University A to Z',
+};
+
 export interface UniSearch {
   oc: string | null;
   km: number; // 0 = anywhere
@@ -96,7 +111,7 @@ export interface UniSearch {
   dfe: boolean;
   russell: boolean;
   fy: 'yes' | 'no' | null; // foundation year available / not
-  sort: 'default' | 'rank' | 'cug';
+  sort: UniSort;
   page: number;
 }
 
@@ -114,7 +129,7 @@ export function parseUniSearch(p: Params): UniSearch {
     dfe: one(p, 'dfe') === '1',
     russell: one(p, 'rg') === '1',
     fy: one(p, 'fy') === 'yes' ? 'yes' : one(p, 'fy') === 'no' ? 'no' : null,
-    sort: one(p, 'sort') === 'rank' ? 'rank' : one(p, 'sort') === 'cug' ? 'cug' : 'default',
+    sort: (UNI_SORTS as readonly string[]).includes(one(p, 'sort') ?? '') ? (one(p, 'sort') as UniSort) : 'default',
     page: int(one(p, 'page'), 1, 100, 1),
   };
 }
@@ -170,6 +185,10 @@ export interface CourseRow {
   cug_overall_position: number | null;
   cug_overall_tied: boolean | null;
   cug_overall_of: number | null;
+  satisfaction_pct: number | null;
+  median_salary: number | null;
+  /** UCAS Tariff points the T Level requirement works out to (0033). */
+  tlevel_points: number | null;
   total: number;
 }
 
