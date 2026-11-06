@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { clearDislikes, react, unreact, type ItemType } from '@/app/account/liked/actions';
+import { BigFacts, type BigFact } from '@/components/BigFacts';
 import { RankStats } from '@/components/RankStats';
 import type { RankStat } from '@/lib/rank';
 
@@ -17,6 +18,8 @@ export interface CardItem {
   badge?: { text: string; tone: 'volt' | 'cobalt' | 'ink' | 'plain' } | null;
   /** Rankings shown as big numbers. */
   stats?: RankStat[];
+  /** Other big figures (wage, closing date). */
+  facts?: BigFact[];
   /** A sentence worth reading (reasons, T Level quote). */
   note?: string | null;
   href: string;
@@ -220,6 +223,11 @@ export function CardStack({
           {current.stats?.length ? (
             <div className="border-l-8 border-volt py-1 pl-4">
               <RankStats stats={current.stats} size="lg" />
+            </div>
+          ) : null}
+          {current.facts?.length ? (
+            <div className="border-l-8 border-volt py-1 pl-4">
+              <BigFacts facts={current.facts} size="lg" />
             </div>
           ) : null}
           {current.chips?.length ? (

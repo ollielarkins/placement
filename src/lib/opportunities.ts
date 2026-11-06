@@ -381,9 +381,31 @@ export interface ApprenticeshipSearch {
   km: number;
   q: string | null;
   level: number | null;
+  band: AppBand | null;
   tlevel: boolean;
+  sort: AppSort;
   page: number;
 }
+
+export const APP_BANDS = ['intermediate', 'advanced', 'higher', 'degree'] as const;
+export type AppBand = (typeof APP_BANDS)[number];
+export const APP_BAND_LABEL: Record<AppBand, string> = {
+  intermediate: 'Intermediate · L2',
+  advanced: 'Advanced · L3',
+  higher: 'Higher · L4–5',
+  degree: 'Degree · L6–7',
+};
+export const APP_SORTS = ['default', 'closing', 'newest', 'wage', 'level', 'nearest', 'employer'] as const;
+export type AppSort = (typeof APP_SORTS)[number];
+export const APP_SORT_LABEL: Record<AppSort, string> = {
+  default: 'Best match',
+  closing: 'Closing soonest',
+  newest: 'Newest',
+  wage: 'Highest wage',
+  level: 'Highest level',
+  nearest: 'Nearest to you',
+  employer: 'Employer A to Z',
+};
 
 export function parseApprenticeshipSearch(p: Params): ApprenticeshipSearch {
   const level = one(p, 'level');
@@ -392,7 +414,9 @@ export function parseApprenticeshipSearch(p: Params): ApprenticeshipSearch {
     km: int(one(p, 'km'), 0, 1000, 40),
     q: one(p, 'q')?.slice(0, 100) ?? null,
     level: level && /^[2-7]$/.test(level) ? Number(level) : null,
+    band: (APP_BANDS as readonly string[]).includes(one(p, 'band') ?? '') ? (one(p, 'band') as AppBand) : null,
     tlevel: one(p, 'tlevel') === '1',
+    sort: (APP_SORTS as readonly string[]).includes(one(p, 'sort') ?? '') ? (one(p, 'sort') as AppSort) : 'default',
     page: int(one(p, 'page'), 1, 100, 1),
   };
 }
@@ -404,7 +428,9 @@ export function apprenticeshipHref(s: ApprenticeshipSearch, over: Partial<Appren
   if (v.km !== 40) u.set('km', String(v.km));
   if (v.q) u.set('q', v.q);
   if (v.level) u.set('level', String(v.level));
+  if (v.band) u.set('band', v.band);
   if (v.tlevel) u.set('tlevel', '1');
+  if (v.sort !== 'default') u.set('sort', v.sort);
   if (v.page > 1) u.set('page', String(v.page));
   return `/apprenticeships?${u.toString()}`;
 }
@@ -434,7 +460,23 @@ export interface AdvertRow {
   distance_km: number | null;
   tlevel_mention: string | null;
   training_provider: string | null;
+  posted_on: string | null;
+  hours_per_week: number | null;
+  expected_duration: string | null;
+  /** A yearly figure from a stated wage; null for "minimum wage" or "competitive" (0036). */
+  wage_annual: number | null;
   total: number;
+}
+
+export interface AppSummary {
+  total: number;
+  intermediate: number;
+  advanced: number;
+  higher: number;
+  degree: number;
+  closing_this_week: number;
+  mention_tlevels: number;
+  top_wage: number | null;
 }
 
 export interface SchemeRow {
@@ -452,9 +494,24 @@ export async function searchApprenticeships(s: ApprenticeshipSearch, origin: Out
   const p: Record<string, unknown> = { page: s.page, limit: 20, tlevel: s.tlevel };
   if (s.q) p.q = s.q;
   if (s.level) p.level = String(s.level);
+  if (s.band) p.band = s.band;
+  if (s.sort !== 'default') p.sort = s.sort;
   if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
   const rows = await cachedRpc<AdvertRow[]>('search_apprenticeships', p);
   return { rows, total: Number(rows[0]?.total ?? 0) };
+}
+
+/** Counts for the summary strip and level pills (level band aside). */
+export async function apprenticeshipSummary(s: ApprenticeshipSearch, origin: OutcodeCentroid | null): Promise<AppSummary> {
+  const p: Record<string, unknown> = { tlevel: s.tlevel };
+  if (s.q) p.q = s.q;
+  if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
+  const [r] = await cachedRpc<AppSummary[]>('apprenticeship_summary', p);
+  const n = (x: unknown) => Number(x ?? 0);
+  return {
+    total: n(r?.total), intermediate: n(r?.intermediate), advanced: n(r?.advanced), higher: n(r?.higher), degree: n(r?.degree),
+    closing_this_week: n(r?.closing_this_week), mention_tlevels: n(r?.mention_tlevels), top_wage: r?.top_wage ?? null,
+  };
 }
 
 export async function apprenticeshipEmployers(s: ApprenticeshipSearch, origin: OutcodeCentroid | null) {
