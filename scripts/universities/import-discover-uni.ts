@@ -142,7 +142,7 @@ const url = (v: string | undefined) => {
   return /^https?:\/\/[^\s]+\.[^\s]+$/i.test(u) && u.length <= 2048 ? u : null;
 };
 
-function extract(zip: string): string {
+export function extract(zip: string): string {
   const dir = join(dirname(zip), 'extracted');
   const find = () => {
     if (!existsSync(dir)) return null;
@@ -161,7 +161,7 @@ function extract(zip: string): string {
   return out;
 }
 
-function loadEnv() {
+export function loadEnv() {
   if (!existsSync('.env')) return;
   for (const line of readFileSync('.env', 'utf8').split(/\r?\n/)) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);

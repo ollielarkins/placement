@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { SaveCourseButton } from '@/components/SaveButton';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { ukDate } from '@/lib/format';
-import { NATIONS, SUBJECT_GROUPS, TLEVEL_STATUS, uniCourseDetail } from '@/lib/opportunities';
+import { LEAGUE_TABLES, NATIONS, SUBJECT_GROUPS, TLEVEL_STATUS, rankText, uniCourseDetail, type CourseDetail } from '@/lib/opportunities';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -121,6 +121,8 @@ export default async function CoursePage({ params }: Props) {
         </p>
       </section>
 
+      <Rankings c={c} />
+
       <section aria-labelledby="facts" className="grid gap-3">
         <h2 id="facts" className="text-xl font-bold">
           About the course
@@ -146,5 +148,92 @@ export default async function CoursePage({ params }: Props) {
         Course details: Discover Uni dataset (HESA and the Office for Students), CC BY 4.0, updated {ukDate(c.fetched_at)}.
       </p>
     </article>
+  );
+}
+
+function Rankings({ c }: { c: CourseDetail }) {
+  const u = c.university;
+  const subj = rankText(c.subject_rank, c.subject_rank_of, c.subject_rank_tied);
+  const uni = rankText(u.overall_rank, u.overall_rank_of, u.overall_rank_tied);
+  const measures: [string, string | null][] = [
+    ['Student satisfaction', c.satisfaction_pct != null ? `${c.satisfaction_pct}%` : null],
+    ['Still on course or qualified after a year', c.continuation_pct != null ? `${c.continuation_pct}%` : null],
+    ['In work or study 15 months after', c.work_study_pct != null ? `${c.work_study_pct}%` : null],
+    ['Median graduate salary', c.median_salary != null ? `£${c.median_salary.toLocaleString('en-GB')}` : null],
+  ];
+  const shown = measures.filter(([, v]) => v);
+  return (
+    <section aria-labelledby="rank" className="grid gap-3">
+      <h2 id="rank" className="text-xl font-bold">
+        How it ranks
+      </h2>
+      <dl className="grid gap-3 sm:grid-cols-3">
+        <div className="grid content-start gap-1 border-2 border-ink bg-white p-4">
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{c.subject_label ?? 'Subject'}</dt>
+          <dd className="display text-2xl">{subj ?? 'Not ranked'}</dd>
+          <dd className="text-xs text-slate-600">
+            {subj ? 'Among UK providers teaching this subject.' : 'Too few providers or too little data to rank fairly.'}
+          </dd>
+        </div>
+        <div className="grid content-start gap-1 border-2 border-ink bg-white p-4">
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{u.name}</dt>
+          <dd className="display text-2xl">{uni ?? 'Not ranked'}</dd>
+          <dd className="text-xs text-slate-600">{uni ? 'Across every subject it teaches.' : 'Too few subjects with data to rank.'}</dd>
+        </div>
+        <div className="grid content-start gap-1 border-2 border-ink bg-white p-4">
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Teaching Excellence Framework</dt>
+          <dd className="display text-2xl">{u.tef_overall ?? 'No rating'}</dd>
+          <dd className="text-xs text-slate-600">
+            {u.tef_overall ? (
+              <>
+                Student experience {u.tef_experience ?? 'not stated'}, outcomes {u.tef_outcomes ?? 'not stated'}.{' '}
+                {u.tef_url ? (
+                  <a href={u.tef_url} rel="noopener noreferrer nofollow" target="_blank" className="underline">
+                    Office for Students report
+                  </a>
+                ) : null}
+              </>
+            ) : (
+              'The TEF covers English providers that took part; others have no rating.'
+            )}
+          </dd>
+        </div>
+      </dl>
+      {shown.length ? (
+        <dl className="grid gap-x-6 gap-y-2 border-2 border-ink bg-white p-4 sm:grid-cols-2">
+          {shown.map(([k, v]) => (
+            <div key={k} className="grid">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{k}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      <details className="border-2 border-ink bg-white px-4 py-2 text-sm">
+        <summary className="cursor-pointer font-medium">How we rank, and published league tables</summary>
+        <div className="mt-2 grid gap-2 text-slate-700">
+          <p>
+            These ranks are ours, worked out from the government&apos;s open Discover Uni data, not a published league table.
+            For each subject we compare UK providers on four measures: student satisfaction (National Student Survey),
+            students still on their course or qualified after a year, graduates in work or further study 15 months on, and
+            median graduate salary. Small courses are pulled towards the average so a handful of students can&apos;t top the
+            table. The university rank averages its scores across every subject it teaches. &ldquo;=&rdquo; means a tie.
+          </p>
+          <p>
+            League tables use different measures and weights, so positions differ. Compare with:{' '}
+            {LEAGUE_TABLES.map((t, i) => (
+              <span key={t.name}>
+                {i ? ', ' : ''}
+                <a href={t.url} rel="noopener noreferrer nofollow" target="_blank" className="underline">
+                  {t.name}
+                </a>
+              </span>
+            ))}
+            .
+          </p>
+          {u.rankings_on ? <p className="text-xs text-slate-500">Ranks worked out {ukDate(u.rankings_on)}.</p> : null}
+        </div>
+      </details>
+    </section>
   );
 }

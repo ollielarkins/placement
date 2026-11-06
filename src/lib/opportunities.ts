@@ -96,6 +96,7 @@ export interface UniSearch {
   dfe: boolean;
   russell: boolean;
   fy: 'yes' | 'no' | null; // foundation year available / not
+  sort: 'default' | 'rank';
   page: number;
 }
 
@@ -113,6 +114,7 @@ export function parseUniSearch(p: Params): UniSearch {
     dfe: one(p, 'dfe') === '1',
     russell: one(p, 'rg') === '1',
     fy: one(p, 'fy') === 'yes' ? 'yes' : one(p, 'fy') === 'no' ? 'no' : null,
+    sort: one(p, 'sort') === 'rank' ? 'rank' : 'default',
     page: int(one(p, 'page'), 1, 100, 1),
   };
 }
@@ -129,6 +131,7 @@ export function uniHref(s: UniSearch, over: Partial<UniSearch> = {}): string {
   if (v.dfe) u.set('dfe', '1');
   if (v.russell) u.set('rg', '1');
   if (v.fy) u.set('fy', v.fy);
+  if (v.sort === 'rank') u.set('sort', 'rank');
   if (v.page > 1) u.set('page', String(v.page));
   return `/universities?${u.toString()}`;
 }
@@ -152,12 +155,21 @@ export interface CourseRow {
   /** university: the label comes from the university's general T Level statement (0025). */
   tlevel_scope: 'course' | 'university';
   russell_group: boolean;
+  tef_overall: TefRating | null;
+  overall_rank: number | null;
+  overall_rank_of: number | null;
+  overall_rank_tied: boolean | null;
+  subject_label: string | null;
+  subject_rank: number | null;
+  subject_rank_of: number | null;
+  subject_rank_tied: boolean | null;
   total: number;
 }
 
 export async function searchUniCourses(s: UniSearch, origin: OutcodeCentroid | null) {
   const p: Record<string, unknown> = { page: s.page, limit: UNI_PAGE_SIZE, dfe_list: s.dfe, russell: s.russell };
   if (s.fy) p.foundation = s.fy;
+  if (s.sort === 'rank') p.sort = 'rank';
   if (s.q) p.q = s.q;
   if (s.status.length) p.status = s.status;
   if (s.group) p.group = s.group;
@@ -189,6 +201,14 @@ export interface CourseDetail {
   tlevel_assessed_at: string | null;
   tlevel_scope: 'course' | 'university';
   alevel_requirement: string | null;
+  subject_label: string | null;
+  subject_rank: number | null;
+  subject_rank_of: number | null;
+  subject_rank_tied: boolean | null;
+  satisfaction_pct: number | null;
+  continuation_pct: number | null;
+  work_study_pct: number | null;
+  median_salary: number | null;
   source_url: string;
   fetched_at: string;
   university: {
@@ -204,8 +224,33 @@ export interface CourseDetail {
     tlevel_policy_quote: string | null;
     tlevel_policy_url: string | null;
     tlevel_policy_checked_at: string | null;
+    tef_overall: TefRating | null;
+    tef_experience: TefRating | null;
+    tef_outcomes: TefRating | null;
+    tef_url: string | null;
+    overall_rank: number | null;
+    overall_rank_of: number | null;
+    overall_rank_tied: boolean | null;
+    rankings_on: string | null;
   };
 }
+
+export type TefRating = 'Gold' | 'Silver' | 'Bronze' | 'Requires improvement';
+
+/** "=12th of 207" style, or null when unranked. */
+export function rankText(rank: number | null, of: number | null, tied: boolean | null): string | null {
+  if (!rank || !of) return null;
+  const v = rank % 100;
+  const suffix = v >= 11 && v <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[rank % 10] ?? 'th';
+  return `${tied ? '=' : ''}${rank}${suffix} of ${of}`;
+}
+
+/** Published UK league tables we link to (their tables are copyright, so we don't copy them). */
+export const LEAGUE_TABLES = [
+  { name: 'Complete University Guide', url: 'https://www.thecompleteuniversityguide.co.uk/league-tables/rankings' },
+  { name: 'Guardian University Guide', url: 'https://www.theguardian.com/education/universityguide' },
+  { name: 'QS World University Rankings', url: 'https://www.topuniversities.com/world-university-rankings' },
+] as const;
 
 export async function uniCourseDetail(id: string): Promise<CourseDetail | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;

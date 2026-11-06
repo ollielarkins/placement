@@ -21,7 +21,8 @@
     "domains:candidates": "tsx scripts/contacts/domain-candidates.ts",
     "unis:import": "tsx scripts/universities/import-discover-uni.ts",
     "unis:assess": "tsx scripts/universities/assess-courses.ts",
-    "unis:policies": "tsx scripts/universities/policies.ts"
+    "unis:policies": "tsx scripts/universities/policies.ts",
+    "unis:rank": "tsx scripts/universities/rankings.ts"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

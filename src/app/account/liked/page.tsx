@@ -5,7 +5,7 @@ import { SaveButton, SaveCourseButton } from '@/components/SaveButton';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { requireUser, sessionDb } from '@/lib/auth/session';
 import { displayName, ukDate } from '@/lib/format';
-import { LEVEL_LABEL, type TLevelStatus } from '@/lib/opportunities';
+import { LEVEL_LABEL, rankText, type TLevelStatus } from '@/lib/opportunities';
 import { removeLike } from './actions';
 
 export const metadata: Metadata = { title: 'Liked' };
@@ -20,6 +20,14 @@ interface Liked {
     tlevel_status: TLevelStatus;
     tlevel_requirement: string | null;
     course_url: string | null;
+    subject_label: string | null;
+    subject_rank: number | null;
+    subject_rank_of: number | null;
+    subject_rank_tied: boolean | null;
+    overall_rank: number | null;
+    overall_rank_of: number | null;
+    overall_rank_tied: boolean | null;
+    tef_overall: string | null;
     shortlisted: boolean;
   }[];
   vacancies: {
@@ -107,6 +115,17 @@ export default async function LikedPage() {
             <Row key={c.id} type="course" id={c.id} action={<SaveCourseButton courseId={c.id} compact />}>
               <Link href={`/universities/${c.id}`} className="font-bold hover:underline">{c.title}</Link>
               <p className="text-sm text-slate-600">{[c.university, c.qualification].filter(Boolean).join(' · ')}</p>
+              <p className="text-xs font-semibold text-cobalt">
+                {[
+                  c.subject_label && rankText(c.subject_rank, c.subject_rank_of, c.subject_rank_tied)
+                    ? `${c.subject_label}: ${rankText(c.subject_rank, c.subject_rank_of, c.subject_rank_tied)}`
+                    : null,
+                  rankText(c.overall_rank, c.overall_rank_of, c.overall_rank_tied) ? `University: ${rankText(c.overall_rank, c.overall_rank_of, c.overall_rank_tied)}` : null,
+                  c.tef_overall ? `TEF ${c.tef_overall}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
               <TLevelBadge status={c.tlevel_status} requirement={c.tlevel_requirement} />
             </Row>
           ))}

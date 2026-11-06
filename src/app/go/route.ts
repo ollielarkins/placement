@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   else if (String(form.get('postcode') ?? '').trim()) next.set('pcerror', '1');
 
   // Carry the other (non-personal) search fields through unchanged.
-  for (const key of ['km', 'route', 'spec', 'q', 'group', 'nation', 'dfe', 'rg', 'fy', 'level', 'tlevel', 'view']) {
+  for (const key of ['km', 'route', 'spec', 'q', 'group', 'nation', 'dfe', 'rg', 'fy', 'sort', 'level', 'tlevel', 'view']) {
     for (const v of form.getAll(key)) {
       const t = String(v).trim();
       if (t && t.length <= 100) next.append(key, t);

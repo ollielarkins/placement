@@ -13,6 +13,7 @@ import {
   TLEVEL_STATUS,
   UNI_PAGE_SIZE,
   parseUniSearch,
+  rankText,
   searchUniCourses,
   uniHref,
   type CourseRow,
@@ -82,6 +83,7 @@ export default async function UniversitiesPage({ searchParams }: Props) {
                   tone: r.tlevel_status === 'accepted' ? 'volt' : r.tlevel_status === 'accepted_with_maths' ? 'cobalt' : r.tlevel_status === 'not_accepted' ? 'ink' : 'plain',
                 },
                 chips: [
+                  ...rankLines(r),
                   r.russell_group ? 'Russell Group' : null,
                   r.foundation_year ? 'Foundation year available' : null,
                   r.sandwich_year ? 'Placement year available' : null,
@@ -111,7 +113,8 @@ export default async function UniversitiesPage({ searchParams }: Props) {
           ) : null}
           <p className="text-xs text-slate-500">
             Courses: Discover Uni dataset (HESA and the Office for Students), CC BY 4.0. T Level list: Department for Education,
-            Open Government Licence v3.0. T Level wording read from each course page.
+            Open Government Licence v3.0. T Level wording read from each course page. Rankings are our own, from Discover Uni
+            open data (not a published league table); each course page shows how they work.
           </p>
         </section>
       </div>
@@ -119,7 +122,19 @@ export default async function UniversitiesPage({ searchParams }: Props) {
   );
 }
 
+/** "Uni 12th of 207", "Electrical and electronic engineering 3rd of 100", "TEF Gold". */
+function rankLines(r: CourseRow): string[] {
+  const uni = rankText(r.overall_rank, r.overall_rank_of, r.overall_rank_tied);
+  const subj = rankText(r.subject_rank, r.subject_rank_of, r.subject_rank_tied);
+  return [
+    subj && r.subject_label ? `${r.subject_label}: ${subj}` : null,
+    uni ? `University: ${uni}` : null,
+    r.tef_overall ? `TEF ${r.tef_overall}` : null,
+  ].filter((x): x is string => !!x);
+}
+
 function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }) {
+  const ranks = rankLines(r);
   const extras = [r.foundation_year ? 'Foundation year available' : null, r.sandwich_year ? 'Placement year available' : null].filter(Boolean);
   return (
     <li className="border-2 border-ink bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-hard">
@@ -139,6 +154,15 @@ function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }
         </div>
         <SaveCourseButton courseId={r.id} compact />
       </div>
+      {ranks.length ? (
+        <ul aria-label="Rankings" className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
+          {ranks.map((x) => (
+            <li key={x} className="border-2 border-cobalt px-2 py-0.5 text-cobalt">
+              {x}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
         <TLevelBadge status={r.tlevel_status} requirement={r.tlevel_requirement} />
         {r.tlevel_scope === 'university' && r.tlevel_status !== 'unknown' ? (
@@ -195,6 +219,7 @@ function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
         {s.dfe ? <input type="hidden" name="dfe" value="1" /> : null}
         {s.russell ? <input type="hidden" name="rg" value="1" /> : null}
         {s.fy ? <input type="hidden" name="fy" value={s.fy} /> : null}
+        {s.sort === 'rank' ? <input type="hidden" name="sort" value="rank" /> : null}
         <label className="grid gap-1">
           <span className="font-medium">Your postcode</span>
           <input name="postcode" autoComplete="postal-code" defaultValue={s.oc ?? ''} placeholder="e.g. MK45" className="border-2 border-ink px-2 py-1" />
@@ -254,6 +279,13 @@ function Filters({ s, cards }: { s: UniSearch; cards: boolean }) {
             <option value="">Either</option>
             <option value="yes">With a foundation year</option>
             <option value="no">Without a foundation year</option>
+          </select>
+        </label>
+        <label className="grid gap-1">
+          <span className="font-medium">Order</span>
+          <select name="sort" defaultValue={s.sort} className="border-2 border-ink px-2 py-1">
+            <option value="default">T Level entry first</option>
+            <option value="rank">Best ranked first</option>
           </select>
         </label>
         <label className="grid gap-1">
