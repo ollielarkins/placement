@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Form from 'next/form';
 import Link from 'next/link';
+import { PendingButton } from '@/components/PendingButton';
 import { SaveButton } from '@/components/SaveButton';
 import { displayName, miles, ukDate } from '@/lib/format';
 import {
@@ -190,9 +192,9 @@ function Filters({ s }: { s: ApprenticeshipSearch }) {
             <option value="0">Anywhere in England</option>
           </select>
         </label>
-        <button className="border-2 border-ink bg-ink px-3 py-1.5 font-bold text-volt hover:bg-volt hover:text-ink">Set location</button>
+        <PendingButton className="border-2 border-ink bg-ink px-3 py-1.5 font-bold text-volt hover:bg-volt hover:text-ink" pendingText="Finding…">Set location</PendingButton>
       </form>
-      <form method="get" action="/apprenticeships" className="grid gap-3">
+      <Form action="/apprenticeships" className="grid gap-3">
         {s.oc ? <input type="hidden" name="oc" value={s.oc} /> : null}
         {s.km !== 40 ? <input type="hidden" name="km" value={s.km} /> : null}
         <label className="grid gap-1">
@@ -214,11 +216,11 @@ function Filters({ s }: { s: ApprenticeshipSearch }) {
           <input type="checkbox" name="tlevel" value="1" defaultChecked={s.tlevel} />
           Only adverts that mention T Levels
         </label>
-        <button className="border-2 border-ink bg-volt px-3 py-1.5 font-bold hover:-translate-y-0.5 hover:shadow-hard-sm">Show adverts</button>
+        <PendingButton className="border-2 border-ink bg-volt px-3 py-1.5 font-bold hover:-translate-y-0.5 hover:shadow-hard-sm" pendingText="Searching…" resetKey={apprenticeshipHref(s)}>Show adverts</PendingButton>
         <Link href="/apprenticeships" className="text-center underline">
           Clear filters
         </Link>
-      </form>
+      </Form>
     </div>
   );
 }

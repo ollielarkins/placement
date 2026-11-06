@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Form from 'next/form';
 import Link from 'next/link';
+import { PendingButton } from '@/components/PendingButton';
 import { LocationForm } from '@/components/LocationForm';
 import { ResultCard } from '@/components/ResultCard';
 import { collegeTags, referenceData, searchCompanies } from '@/lib/data';
@@ -82,8 +84,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
 function Filters({ s, sectors, bare = false }: { s: SearchState; sectors: string[]; bare?: boolean }) {
   return (
-    <form
-      method="get"
+    <Form
       action="/search"
       className={`grid content-start gap-5 p-4 text-sm ${bare ? 'border-t border-slate-100' : 'border-2 border-ink bg-white'}`}
     >
@@ -140,14 +141,14 @@ function Filters({ s, sectors, bare = false }: { s: SearchState; sectors: string
       </fieldset>
 
       <div className="flex gap-2">
-        <button type="submit" className="border-2 border-ink bg-ink px-4 py-2 font-bold text-volt hover:bg-volt hover:text-ink">
+        <PendingButton className="border-2 border-ink bg-ink px-4 py-2 font-bold text-volt hover:bg-volt hover:text-ink" pendingText="Searching…" resetKey={searchHref(s)}>
           Apply
-        </button>
+        </PendingButton>
         <Link href={searchHref({ ...s, q: null, region: null, sectors: [], sizes: [], taken: false, onward: false, sources: [], outside: false, core: false, weights: { route_onward: 30, specialism_fit: 25, practicalities: 25, brand: 20 }, page: 1 })} className="rounded-md px-4 py-2 text-slate-600 hover:underline">
           Clear
         </Link>
       </div>
-    </form>
+    </Form>
   );
 }
 

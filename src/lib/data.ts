@@ -10,7 +10,7 @@ import type {
   SizeBand,
   TriState,
 } from '@/types/domain';
-import { cached, publicDb } from './supabase';
+import { cached, publicDb, rpcRetry } from './supabase';
 import type { OutcodeCentroid } from './outcode';
 import { PAGE_SIZE, type SearchState } from './filters';
 
@@ -69,10 +69,8 @@ export async function searchCompanies(s: SearchState, origin: OutcodeCentroid | 
 
 const rankCached = unstable_cache(
   async (profile: Record<string, unknown>, filters: Record<string, unknown>): Promise<SearchResult> => {
-    const { data, error } = await publicDb().rpc('rank_companies', { p_profile: profile, p_filters: filters });
     // Throwing means errors are never cached; the next request tries again.
-    if (error) throw new Error(`rank_companies: ${error.message}`);
-    const rows = (data ?? []) as RankedCompany[];
+    const rows = ((await rpcRetry<RankedCompany[]>('rank_companies', { p_profile: profile, p_filters: filters })) ?? []) as RankedCompany[];
     return { rows, total: rows[0]?.total_count ?? 0 };
   },
   ['rank_companies', 'v2'],

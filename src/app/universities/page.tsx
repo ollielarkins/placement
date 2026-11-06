@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Form from 'next/form';
 import Link from 'next/link';
+import { PendingButton } from '@/components/PendingButton';
 import { SaveCourseButton } from '@/components/SaveButton';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { miles } from '@/lib/format';
@@ -174,10 +176,10 @@ function Filters({ s }: { s: UniSearch }) {
             <option value="320">200 miles</option>
           </select>
         </label>
-        <button className="border-2 border-ink bg-ink px-3 py-1.5 font-bold text-volt hover:bg-volt hover:text-ink">Set location</button>
+        <PendingButton className="border-2 border-ink bg-ink px-3 py-1.5 font-bold text-volt hover:bg-volt hover:text-ink" pendingText="Finding…">Set location</PendingButton>
       </form>
 
-      <form method="get" action="/universities" className="grid gap-3">
+      <Form action="/universities" className="grid gap-3">
         {s.oc ? <input type="hidden" name="oc" value={s.oc} /> : null}
         {s.km ? <input type="hidden" name="km" value={s.km} /> : null}
         <label className="grid gap-1">
@@ -219,11 +221,11 @@ function Filters({ s }: { s: UniSearch }) {
             ))}
           </select>
         </label>
-        <button className="border-2 border-ink bg-volt px-3 py-1.5 font-bold hover:-translate-y-0.5 hover:shadow-hard-sm">Show courses</button>
+        <PendingButton className="border-2 border-ink bg-volt px-3 py-1.5 font-bold hover:-translate-y-0.5 hover:shadow-hard-sm" pendingText="Searching…" resetKey={uniHref(s)}>Show courses</PendingButton>
         <Link href="/universities" className="text-center underline">
           Clear filters
         </Link>
-      </form>
+      </Form>
     </div>
   );
 }

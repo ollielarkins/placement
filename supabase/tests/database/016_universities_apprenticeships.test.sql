@@ -57,6 +57,7 @@ insert into public.vacancies (company_id, external_ref, title, closing_date, url
 insert into import.faa_vacancy_details (external_ref, wage_text, course_level, tlevel_mention) values
   ('FX16-2', '£24,000 a year', 6, 'Applicants with a T Level in Engineering are welcome.');
 select is(import.apply_vacancy_details() >= 1, true, 'advert details load by reference');
+select public.refresh_read_models(); -- employers with schemes are precomputed (0026)
 
 set local role anon;
 select is((select title from public.search_apprenticeships('{"q":"Fixture Sixteen Apprentice","tlevel":true}')),

@@ -29,3 +29,17 @@ export async function cached<T>(key: string, ttlMs: number, load: () => Promise<
   cache.set(key, { at: Date.now(), value });
   return value;
 }
+
+/**
+ * RPC with one retry when the database timed out (a cold start after a quiet
+ * spell; the second attempt finds the data in memory). Throws on failure so
+ * callers' caches never store an error.
+ */
+export async function rpcRetry<T>(fn: string, args: Record<string, unknown>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    const { data, error } = await publicDb().rpc(fn, args);
+    if (!error) return data as T;
+    const timedOut = error.code === '57014' || /timeout|timed out/i.test(error.message);
+    if (!timedOut || attempt >= 2) throw new Error(`${fn}: ${error.message}`);
+  }
+}

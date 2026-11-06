@@ -1,3 +1,4 @@
+import { PendingButton } from './PendingButton';
 import type { ReferenceData } from '@/lib/data';
 
 // Plain HTML form: works without JavaScript and POSTs the postcode so it never
@@ -62,9 +63,12 @@ export function LocationForm({
         </select>
       </label>
       <div className={compact ? 'flex items-start sm:col-span-2 lg:col-span-1 lg:pt-6' : 'sm:col-span-2'}>
-        <button type="submit" className="w-full whitespace-nowrap border-2 border-ink bg-volt px-5 py-2 font-bold uppercase tracking-wide text-ink shadow-hard-sm transition hover:-translate-y-0.5 hover:shadow-hard sm:w-auto">
+        <PendingButton
+          className="w-full whitespace-nowrap border-2 border-ink bg-volt px-5 py-2 font-bold uppercase tracking-wide text-ink shadow-hard-sm transition hover:-translate-y-0.5 hover:shadow-hard sm:w-auto"
+          pendingText="Searching…"
+        >
           {dest === 'map' ? 'Show on map →' : 'Find placements →'}
-        </button>
+        </PendingButton>
       </div>
     </form>
   );

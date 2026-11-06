@@ -1,5 +1,6 @@
 import 'server-only';
-import { publicDb } from './supabase';
+import { unstable_cache } from 'next/cache';
+import { publicDb, rpcRetry } from './supabase';
 import type { OutcodeCentroid } from './outcode';
 
 // Universities and Apprenticeships tabs (migration 0024). Public, read-only,
@@ -24,6 +25,16 @@ const outcode = (p: Params) => {
 };
 
 export const UNI_PAGE_SIZE = 20;
+
+// Search results depend only on the filters (and an outward code's centre
+// point, never a student), so they're shared through Vercel's data cache for
+// 10 minutes, like the employer search.
+const rpcCached = unstable_cache(
+  async (fn: string, p: Record<string, unknown>) => (await rpcRetry<unknown[]>(fn, { p })) ?? [],
+  ['opportunities', 'v1'],
+  { revalidate: 600, tags: ['opportunities'] },
+);
+const cachedRpc = async <T,>(fn: string, p: Record<string, unknown>) => (await rpcCached(fn, JSON.parse(JSON.stringify(p)))) as T;
 
 // ---------------------------------------------------------------------------
 // Universities
@@ -144,9 +155,7 @@ export async function searchUniCourses(s: UniSearch, origin: OutcodeCentroid | n
   if (s.group) p.group = s.group;
   if (s.nation) p.nation = s.nation;
   if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
-  const { data, error } = await publicDb().rpc('search_uni_courses', { p });
-  if (error) throw new Error(`search_uni_courses: ${error.message}`);
-  const rows = (data ?? []) as CourseRow[];
+  const rows = await cachedRpc<CourseRow[]>('search_uni_courses', p);
   return { rows, total: Number(rows[0]?.total ?? 0) };
 }
 
@@ -276,17 +285,13 @@ export async function searchApprenticeships(s: ApprenticeshipSearch, origin: Out
   if (s.q) p.q = s.q;
   if (s.level) p.level = String(s.level);
   if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
-  const { data, error } = await publicDb().rpc('search_apprenticeships', { p });
-  if (error) throw new Error(`search_apprenticeships: ${error.message}`);
-  const rows = (data ?? []) as AdvertRow[];
+  const rows = await cachedRpc<AdvertRow[]>('search_apprenticeships', p);
   return { rows, total: Number(rows[0]?.total ?? 0) };
 }
 
 export async function apprenticeshipEmployers(s: ApprenticeshipSearch, origin: OutcodeCentroid | null) {
   const p: Record<string, unknown> = { page: 1, limit: 12 };
   if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
-  const { data, error } = await publicDb().rpc('apprenticeship_employers', { p });
-  if (error) throw new Error(`apprenticeship_employers: ${error.message}`);
-  const rows = (data ?? []) as SchemeRow[];
+  const rows = await cachedRpc<SchemeRow[]>('apprenticeship_employers', p);
   return { rows, total: Number(rows[0]?.total ?? 0) };
 }
