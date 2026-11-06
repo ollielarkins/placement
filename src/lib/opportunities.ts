@@ -1,0 +1,285 @@
+import 'server-only';
+import { publicDb } from './supabase';
+import type { OutcodeCentroid } from './outcode';
+
+// Universities and Apprenticeships tabs (migration 0024). Public, read-only,
+// through the RPCs; search state lives in the URL like the employer search.
+
+type Params = Record<string, string | string[] | undefined>;
+const one = (p: Params, k: string) => {
+  const v = p[k];
+  return (Array.isArray(v) ? v[0] : v)?.trim() || null;
+};
+const many = (p: Params, k: string) => {
+  const v = p[k];
+  return (Array.isArray(v) ? v : v ? [v] : []).flatMap((x) => x.split(',')).map((x) => x.trim()).filter(Boolean);
+};
+const int = (v: string | null, lo: number, hi: number, d: number) => {
+  const n = v == null ? NaN : Number.parseInt(v, 10);
+  return Number.isFinite(n) ? Math.min(Math.max(n, lo), hi) : d;
+};
+const outcode = (p: Params) => {
+  const oc = one(p, 'oc')?.toUpperCase().replace(/\s/g, '') ?? null;
+  return oc && /^[A-Z]{1,2}[0-9][A-Z0-9]?$/.test(oc) ? oc : null;
+};
+
+export const UNI_PAGE_SIZE = 20;
+
+// ---------------------------------------------------------------------------
+// Universities
+// ---------------------------------------------------------------------------
+export type TLevelStatus = 'accepted' | 'accepted_with_maths' | 'case_by_case' | 'not_accepted' | 'unknown';
+export type SubjectGroup = 'engineering' | 'computing' | 'physics' | 'maths' | 'built_environment' | 'other';
+export type Nation = 'england' | 'scotland' | 'wales' | 'northern_ireland';
+
+export const TLEVEL_STATUS: Record<TLevelStatus, { label: string; short: string; help: string }> = {
+  accepted: {
+    label: 'Accepts T Levels',
+    short: 'T Level accepted',
+    help: 'The course page says an engineering T Level meets the entry requirement.',
+  },
+  accepted_with_maths: {
+    label: 'T Level + A level Maths',
+    short: 'With A level Maths',
+    help: 'Accepted only alongside A level Maths (or a similar maths qualification).',
+  },
+  case_by_case: {
+    label: 'Case by case',
+    short: 'Case by case',
+    help: 'T Level applicants are considered individually. Contact admissions before applying.',
+  },
+  not_accepted: {
+    label: 'Not accepted',
+    short: 'Not accepted',
+    help: 'The course page says T Levels aren’t accepted for this course. A foundation year may be an option.',
+  },
+  unknown: {
+    label: 'Check with the university',
+    short: 'Not stated',
+    help: 'We couldn’t find a clear statement about T Levels on the course page.',
+  },
+};
+export const STATUS_ORDER: TLevelStatus[] = ['accepted', 'accepted_with_maths', 'case_by_case', 'not_accepted', 'unknown'];
+
+export const SUBJECT_GROUPS: Record<Exclude<SubjectGroup, 'other'>, string> = {
+  engineering: 'Engineering',
+  computing: 'Computing',
+  physics: 'Physics',
+  maths: 'Maths',
+  built_environment: 'Architecture and building',
+};
+export const NATIONS: Record<Nation, string> = {
+  england: 'England',
+  scotland: 'Scotland',
+  wales: 'Wales',
+  northern_ireland: 'Northern Ireland',
+};
+
+export interface UniSearch {
+  oc: string | null;
+  km: number; // 0 = anywhere
+  q: string | null;
+  status: TLevelStatus[];
+  group: Exclude<SubjectGroup, 'other'> | null;
+  nation: Nation | null;
+  dfe: boolean;
+  page: number;
+}
+
+export function parseUniSearch(p: Params): UniSearch {
+  const group = one(p, 'group');
+  const nation = one(p, 'nation');
+  return {
+    oc: outcode(p),
+    km: int(one(p, 'km'), 0, 1000, 0),
+    q: one(p, 'q')?.slice(0, 100) ?? null,
+    status: many(p, 'status').filter((s): s is TLevelStatus => (STATUS_ORDER as string[]).includes(s)),
+    // Engineering by default: the T Levels this app is for.
+    group: group === 'all' ? null : group && group in SUBJECT_GROUPS ? (group as UniSearch['group']) : 'engineering',
+    nation: nation && nation in NATIONS ? (nation as Nation) : null,
+    dfe: one(p, 'dfe') === '1',
+    page: int(one(p, 'page'), 1, 100, 1),
+  };
+}
+
+export function uniHref(s: UniSearch, over: Partial<UniSearch> = {}): string {
+  const v = { ...s, ...over };
+  const u = new URLSearchParams();
+  if (v.oc) u.set('oc', v.oc);
+  if (v.km) u.set('km', String(v.km));
+  if (v.q) u.set('q', v.q);
+  for (const st of v.status) u.append('status', st);
+  u.set('group', v.group ?? 'all');
+  if (v.nation) u.set('nation', v.nation);
+  if (v.dfe) u.set('dfe', '1');
+  if (v.page > 1) u.set('page', String(v.page));
+  return `/universities?${u.toString()}`;
+}
+
+export interface CourseRow {
+  id: string;
+  title: string;
+  qualification: string | null;
+  subject_group: SubjectGroup;
+  university_id: string;
+  university: string;
+  on_dfe_tlevel_list: boolean;
+  nation: Nation | null;
+  location_name: string | null;
+  distance_km: number | null;
+  tlevel_status: TLevelStatus;
+  tlevel_requirement: string | null;
+  course_url: string | null;
+  foundation_year: boolean | null;
+  sandwich_year: boolean | null;
+  total: number;
+}
+
+export async function searchUniCourses(s: UniSearch, origin: OutcodeCentroid | null) {
+  const p: Record<string, unknown> = { page: s.page, limit: UNI_PAGE_SIZE, dfe_list: s.dfe };
+  if (s.q) p.q = s.q;
+  if (s.status.length) p.status = s.status;
+  if (s.group) p.group = s.group;
+  if (s.nation) p.nation = s.nation;
+  if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
+  const { data, error } = await publicDb().rpc('search_uni_courses', { p });
+  if (error) throw new Error(`search_uni_courses: ${error.message}`);
+  const rows = (data ?? []) as CourseRow[];
+  return { rows, total: Number(rows[0]?.total ?? 0) };
+}
+
+export interface CourseDetail {
+  id: string;
+  title: string;
+  qualification: string | null;
+  subject_group: SubjectGroup;
+  ucas_codes: string[];
+  course_url: string | null;
+  foundation_year: boolean | null;
+  sandwich_year: boolean | null;
+  location_name: string | null;
+  lat: number | null;
+  lng: number | null;
+  entry_alevel_pct: number | null;
+  entry_other_pct: number | null;
+  tlevel_status: TLevelStatus;
+  tlevel_requirement: string | null;
+  tlevel_quote: string | null;
+  tlevel_quote_url: string | null;
+  tlevel_assessed_by: 'rules' | 'claude' | 'curated' | null;
+  tlevel_assessed_at: string | null;
+  alevel_requirement: string | null;
+  source_url: string;
+  fetched_at: string;
+  university: {
+    id: string;
+    name: string;
+    nation: Nation | null;
+    website: string | null;
+    on_dfe_tlevel_list: boolean;
+    dfe_list_url: string | null;
+    dfe_list_checked_on: string | null;
+  };
+}
+
+export async function uniCourseDetail(id: string): Promise<CourseDetail | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { data, error } = await publicDb().rpc('uni_course_detail', { p_id: id });
+  if (error) throw new Error(`uni_course_detail: ${error.message}`);
+  return (data as CourseDetail | null) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Apprenticeships
+// ---------------------------------------------------------------------------
+export interface ApprenticeshipSearch {
+  oc: string | null;
+  km: number;
+  q: string | null;
+  level: number | null;
+  tlevel: boolean;
+  page: number;
+}
+
+export function parseApprenticeshipSearch(p: Params): ApprenticeshipSearch {
+  const level = one(p, 'level');
+  return {
+    oc: outcode(p),
+    km: int(one(p, 'km'), 0, 1000, 40),
+    q: one(p, 'q')?.slice(0, 100) ?? null,
+    level: level && /^[2-7]$/.test(level) ? Number(level) : null,
+    tlevel: one(p, 'tlevel') === '1',
+    page: int(one(p, 'page'), 1, 100, 1),
+  };
+}
+
+export function apprenticeshipHref(s: ApprenticeshipSearch, over: Partial<ApprenticeshipSearch> = {}): string {
+  const v = { ...s, ...over };
+  const u = new URLSearchParams();
+  if (v.oc) u.set('oc', v.oc);
+  if (v.km !== 40) u.set('km', String(v.km));
+  if (v.q) u.set('q', v.q);
+  if (v.level) u.set('level', String(v.level));
+  if (v.tlevel) u.set('tlevel', '1');
+  if (v.page > 1) u.set('page', String(v.page));
+  return `/apprenticeships?${u.toString()}`;
+}
+
+export const LEVEL_LABEL: Record<number, string> = {
+  2: 'Intermediate (level 2)',
+  3: 'Advanced (level 3)',
+  4: 'Higher (level 4)',
+  5: 'Higher (level 5)',
+  6: 'Degree (level 6)',
+  7: 'Degree (level 7)',
+};
+
+export interface AdvertRow {
+  id: string;
+  title: string;
+  employer: string;
+  company_id: string;
+  course_title: string | null;
+  course_level: number | null;
+  level: string | null;
+  wage_text: string | null;
+  closing_date: string | null;
+  start_on: string | null;
+  url: string | null;
+  postcode: string | null;
+  distance_km: number | null;
+  tlevel_mention: string | null;
+  training_provider: string | null;
+  total: number;
+}
+
+export interface SchemeRow {
+  id: string;
+  name: string;
+  size_band: string;
+  scheme_url: string | null;
+  has_degree_apprenticeship: boolean;
+  distance_km: number | null;
+  verified: boolean;
+  total: number;
+}
+
+export async function searchApprenticeships(s: ApprenticeshipSearch, origin: OutcodeCentroid | null) {
+  const p: Record<string, unknown> = { page: s.page, limit: 20, tlevel: s.tlevel };
+  if (s.q) p.q = s.q;
+  if (s.level) p.level = String(s.level);
+  if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
+  const { data, error } = await publicDb().rpc('search_apprenticeships', { p });
+  if (error) throw new Error(`search_apprenticeships: ${error.message}`);
+  const rows = (data ?? []) as AdvertRow[];
+  return { rows, total: Number(rows[0]?.total ?? 0) };
+}
+
+export async function apprenticeshipEmployers(s: ApprenticeshipSearch, origin: OutcodeCentroid | null) {
+  const p: Record<string, unknown> = { page: 1, limit: 12 };
+  if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
+  const { data, error } = await publicDb().rpc('apprenticeship_employers', { p });
+  if (error) throw new Error(`apprenticeship_employers: ${error.message}`);
+  const rows = (data ?? []) as SchemeRow[];
+  return { rows, total: Number(rows[0]?.total ?? 0) };
+}

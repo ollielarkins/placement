@@ -35,9 +35,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex gap-1 text-sm font-semibold">
               {(
                 [
-                  ['/search', 'Search'],
+                  ['/search', 'Placements'],
                   ['/map', 'Map'],
-                  ['/regions', 'Regions'],
+                  ['/apprenticeships', 'Apprenticeships'],
+                  ['/universities', 'Universities'],
                 ] as const
               ).map(([href, label]) => (
                 <Link key={href} href={href} className="px-2 py-1 hover:bg-volt">
@@ -60,7 +61,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <p className="display text-2xl text-volt">Placement Finder</p>
               <p className="max-w-xl text-paper/80">
                 Built by a T Level student, for T Level students. Company data: Companies House and Find an
-                apprenticeship (Open Government Licence v3.0), plus research with a source for every claim.
+                apprenticeship (Open Government Licence v3.0), plus research with a source for every claim. Courses:
+                Discover Uni (HESA and the Office for Students, CC BY 4.0).
               </p>
               <p className="max-w-xl text-paper/80">
                 Your postcode is cut to its first half (for example MK45) before anything else happens, and is never

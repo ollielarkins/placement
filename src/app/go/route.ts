@@ -12,10 +12,14 @@ export async function POST(req: Request) {
   else if (String(form.get('postcode') ?? '').trim()) next.set('pcerror', '1');
 
   // Carry the other (non-personal) search fields through unchanged.
-  for (const key of ['km', 'route', 'spec', 'q']) {
-    const v = String(form.get(key) ?? '').trim();
-    if (v) next.set(key, v);
+  for (const key of ['km', 'route', 'spec', 'q', 'group', 'nation', 'dfe', 'level', 'tlevel']) {
+    for (const v of form.getAll(key)) {
+      const t = String(v).trim();
+      if (t && t.length <= 100) next.append(key, t);
+    }
   }
-  const dest = String(form.get('dest') ?? '') === 'map' ? '/map' : '/search';
+  for (const v of form.getAll('status')) if (/^[a-z_]{1,30}$/.test(String(v))) next.append('status', String(v));
+  const DEST: Record<string, string> = { map: '/map', universities: '/universities', apprenticeships: '/apprenticeships' };
+  const dest = DEST[String(form.get('dest') ?? '')] ?? '/search';
   return NextResponse.redirect(new URL(`${dest}?${next.toString()}`, req.url), 303);
 }

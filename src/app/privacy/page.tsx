@@ -45,7 +45,7 @@ export default function PrivacyPage() {
         <ul className="list-disc pl-5">
           <li>your email address and how you signed in (email link or Google). If you use Google, Google also shares the name and profile picture on your Google account; we don’t show or use them;</li>
           <li>when you confirmed you’re 16 or over, and which version of this notice you saw;</li>
-          <li>anything you add later: your T Level and specialism, your college, the first half of your postcode, how far you’ll travel, target companies and your shortlist with its notes.</li>
+          <li>anything you add later: your T Level and specialism, your college, the first half of your postcode, how far you’ll travel, target companies, and your shortlist of employers and university courses with its notes.</li>
         </ul>
         <p>Your account uses cookies that keep you signed in. They’re needed for sign-in to work and aren’t used for anything else.</p>
         <p>We’ll update this notice before adding anything new.</p>

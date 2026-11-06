@@ -18,7 +18,9 @@
     "test:scripts": "tsx --test scripts/**/*.test.ts supabase/functions/**/*.test.ts",
     "colleges:link": "tsx scripts/colleges/link-from-evidence.ts",
     "crawl:contacts:loop": "tsx scripts/contacts/run-until-done.ts",
-    "domains:candidates": "tsx scripts/contacts/domain-candidates.ts"
+    "domains:candidates": "tsx scripts/contacts/domain-candidates.ts",
+    "unis:import": "tsx scripts/universities/import-discover-uni.ts",
+    "unis:assess": "tsx scripts/universities/assess-courses.ts"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",

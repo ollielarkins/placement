@@ -40,6 +40,20 @@ interface ApiVacancy {
   apprenticeshipLevel?: string;
   course?: { title?: string; level?: number; route?: string };
   vacancyUrl?: string;
+  // Returned with IncludeDetails=true. Named employer contacts
+  // (employerContactName/Email/Phone) are deliberately not read.
+  description?: string;
+  fullDescription?: string;
+  trainingDescription?: string;
+  additionalTrainingDescription?: string;
+  outcomeDescription?: string;
+  thingsToConsider?: string;
+  wage?: { wageType?: string; wageAmount?: number; wageUnit?: string; wageAdditionalInformation?: string };
+  hoursPerWeek?: number;
+  expectedDuration?: string;
+  providerName?: string;
+  skills?: string[];
+  qualifications?: { qualificationType?: string; subject?: string; grade?: string; weighting?: string }[];
   postedDate?: string;
   closingDate?: string;
   startDate?: string;
@@ -72,10 +86,91 @@ export function normaliseName(s: string): string {
     .trim();
 }
 
+// ---------------------------------------------------------------------------
+// Advert details (migration 0024)
+// ---------------------------------------------------------------------------
+
+/** Plain text from the API's HTML fields. */
+export function plainText(html: string | undefined | null): string {
+  return (html ?? '')
+    .replace(/<\s*(br|\/p|\/li|\/h[1-6])\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&#39;|&rsquo;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\n\s*/g, '\n')
+    .trim();
+}
+
+const T_LEVEL = /\bT[\s-]?Levels?\b/i;
+
+/** The sentence where the advert mentions T Levels, or null. */
+export function tLevelMention(texts: (string | undefined | null)[]): string | null {
+  for (const t of texts) {
+    const text = plainText(t);
+    const m = T_LEVEL.exec(text);
+    if (!m) continue;
+    // Sentence (or line) around the match.
+    const before = text.slice(0, m.index);
+    const start = Math.max(before.lastIndexOf('. '), before.lastIndexOf('\n'), before.lastIndexOf('? '), before.lastIndexOf('! ')) + 1;
+    const rest = text.slice(m.index);
+    const endRel = rest.search(/(\.\s|\n|\?\s|!\s|$)/);
+    const sentence = text.slice(start, m.index + endRel + 1).trim();
+    return sentence.length > 600 ? `${sentence.slice(0, 597)}...` : sentence;
+  }
+  return null;
+}
+
+/** "£24,000 a year", "£300.00 a week", "National Minimum Wage for apprentices", plus any note. */
+export function wageText(w: ApiVacancy['wage']): string | null {
+  if (!w) return null;
+  const unit: Record<string, string> = { Weekly: 'a week', Monthly: 'a month', Annually: 'a year' };
+  let main: string | null = null;
+  if (w.wageType === 'ApprenticeshipMinimum') main = 'National Minimum Wage for apprentices';
+  else if (w.wageType === 'NationalMinimum') main = 'National Minimum Wage';
+  else if (w.wageType === 'CompetitiveSalary') main = 'Competitive salary';
+  else if (w.wageAmount && w.wageAmount > 0) {
+    const amount = w.wageAmount.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: w.wageAmount % 1 ? 2 : 0 });
+    main = `${amount} ${unit[w.wageUnit ?? ''] ?? 'a year'}`;
+  }
+  const extra = plainText(w.wageAdditionalInformation).replace(/\s+/g, ' ');
+  const out = [main, extra && extra.length <= 150 ? extra : null].filter(Boolean).join('. ');
+  return out ? out.slice(0, 300) : null;
+}
+
+export function advertDetails(a: ApiVacancy) {
+  return {
+    external_ref: a.vacancyReference,
+    summary: plainText(a.description).slice(0, 1000) || null,
+    wage_text: wageText(a.wage),
+    hours_per_week: typeof a.hoursPerWeek === 'number' && a.hoursPerWeek > 0 && a.hoursPerWeek <= 60 ? a.hoursPerWeek : null,
+    expected_duration: a.expectedDuration?.trim().slice(0, 100) || null,
+    training_provider: a.providerName?.trim().slice(0, 200) || null,
+    course_level: a.course?.level && a.course.level >= 2 && a.course.level <= 7 ? a.course.level : null,
+    qualifications: (a.qualifications ?? []).slice(0, 12).map((q) => ({
+      type: q.qualificationType?.slice(0, 80) ?? null,
+      subject: q.subject?.slice(0, 120) ?? null,
+      grade: q.grade?.slice(0, 80) ?? null,
+      essential: q.weighting === 'Essential',
+    })),
+    skills: (a.skills ?? []).map((x) => x.trim()).filter(Boolean).slice(0, 15),
+    tlevel_mention: tLevelMention([
+      a.description,
+      a.fullDescription,
+      ...(a.qualifications ?? []).map((q) => [q.qualificationType, q.subject, q.grade].filter(Boolean).join(' ')),
+      a.thingsToConsider,
+      a.trainingDescription,
+      a.additionalTrainingDescription,
+      a.outcomeDescription,
+    ]),
+  };
+}
+
 const isoDate = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null);
 
 async function getPage(key: string, page: number, attempt = 1): Promise<ApiPage> {
-  const url = `${API}/vacancy?Routes=${encodeURIComponent(ROUTE)}&PageSize=100&PageNumber=${page}&Sort=AgeDesc`;
+  const url = `${API}/vacancy?Routes=${encodeURIComponent(ROUTE)}&PageSize=100&PageNumber=${page}&Sort=AgeDesc&IncludeDetails=true`;
   try {
     const res = await fetch(url, {
       headers: { 'Ocp-Apim-Subscription-Key': key, 'X-Version': '2' },
@@ -263,6 +358,26 @@ async function main() {
       [runId, JSON.stringify(rows)],
     );
     const res = await db.query<{ stats: unknown }>('select import.merge_vacancies($1) as stats', [runId]);
+    // Advert details and T Level mentions (0024), loaded by advert reference.
+    const details = adverts.map(advertDetails);
+    await db.query(
+      `insert into import.faa_vacancy_details as d (external_ref, summary, wage_text, hours_per_week, expected_duration,
+         training_provider, course_level, qualifications, skills, tlevel_mention, fetched_at)
+       select x.external_ref, x.summary, x.wage_text, x.hours_per_week, x.expected_duration, x.training_provider,
+              x.course_level, coalesce(x.qualifications, '[]'), coalesce(x.skills, '{}'), x.tlevel_mention, now()
+       from jsonb_to_recordset($1::jsonb) as x(external_ref text, summary text, wage_text text, hours_per_week numeric,
+         expected_duration text, training_provider text, course_level smallint, qualifications jsonb, skills text[],
+         tlevel_mention text)
+       on conflict (external_ref) do update set summary = excluded.summary, wage_text = excluded.wage_text,
+         hours_per_week = excluded.hours_per_week, expected_duration = excluded.expected_duration,
+         training_provider = excluded.training_provider, course_level = excluded.course_level,
+         qualifications = excluded.qualifications, skills = excluded.skills,
+         tlevel_mention = excluded.tlevel_mention, fetched_at = now()`,
+      [JSON.stringify(details)],
+    );
+    const applied = await db.query<{ n: number }>('select import.apply_vacancy_details() as n');
+    const mentions = details.filter((d) => d.tlevel_mention).length;
+    console.log(`advert details: ${applied.rows[0]!.n} adverts updated, ${mentions} mention T Levels`);
     // The employer's own website from the advert, for the contact crawler
     // (scripts/contacts/crawl-contacts.ts) to start from.
     await db.query(

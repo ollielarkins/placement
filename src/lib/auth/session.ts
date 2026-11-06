@@ -61,4 +61,4 @@ export function safeNext(next: string | null | undefined, fallback = '/account')
   return next && next.length <= 1000 && /^\/(?!\/)[\w\-./?=&%,+:]*$/.test(next) ? next : fallback;
 }
 
-export const PRIVACY_NOTICE_VERSION = '2026-11-05';
+export const PRIVACY_NOTICE_VERSION = '2026-11-06';

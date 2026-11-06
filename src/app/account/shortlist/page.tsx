@@ -4,7 +4,36 @@ import { redirect } from 'next/navigation';
 import { requireUser, sessionDb } from '@/lib/auth/session';
 import { displayName, ukDate } from '@/lib/format';
 import { ALL_STAGES, CLOSED_STAGES, OPEN_STAGES, STAGE_LABEL, isOverdue, type TrackerItem } from '@/lib/tracker';
+import { TLevelBadge } from '@/components/TLevelBadge';
+import type { TLevelStatus } from '@/lib/opportunities';
 import { removeItem, updateItem } from './actions';
+import { removeCourse, updateCourse, type CourseStage } from './course-actions';
+
+const COURSE_STAGES: [CourseStage, string][] = [
+  ['interested', 'Interested'],
+  ['open_day', 'Open day booked'],
+  ['applying', 'Applying'],
+  ['applied', 'Applied'],
+  ['offer', 'Offer'],
+  ['firm', 'Firm choice'],
+  ['insurance', 'Insurance choice'],
+  ['not_for_me', 'Not for me'],
+];
+
+interface SavedCourse {
+  course_id: string;
+  stage: CourseStage;
+  notes: string | null;
+  uni_courses: {
+    title: string;
+    qualification: string | null;
+    course_url: string | null;
+    tlevel_status: TLevelStatus;
+    tlevel_requirement: string | null;
+    alevel_requirement: string | null;
+    universities: { name: string } | null;
+  } | null;
+}
 
 export const metadata: Metadata = { title: 'Your shortlist' };
 
@@ -21,6 +50,12 @@ export default async function ShortlistPage({ searchParams }: Props) {
     .eq('user_id', user.id)
     .order('stage_changed_at', { ascending: false });
   const items = (data ?? []) as unknown as TrackerItem[];
+  const { data: courseData } = await db
+    .from('course_shortlist')
+    .select('course_id, stage, notes, uni_courses(title, qualification, course_url, tlevel_status, tlevel_requirement, alevel_requirement, universities(name))')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  const courses = (courseData ?? []) as unknown as SavedCourse[];
   const overdue = items.filter((t) => isOverdue(t));
   const byStage = (id: string) => items.filter((t) => t.stage === id);
   const closed = items.filter((t) => CLOSED_STAGES.some((s) => s.id === t.stage));
@@ -31,7 +66,8 @@ export default async function ShortlistPage({ searchParams }: Props) {
         <p className="text-sm"><Link href="/account" className="text-brand-700 underline">Your account</Link></p>
         <h1 className="display text-3xl sm:text-4xl">Your shortlist</h1>
         <p className="text-sm text-slate-600">
-          {items.length} {items.length === 1 ? 'company' : 'companies'}. Only you can see this.
+          {items.length} {items.length === 1 ? 'company' : 'companies'}
+          {courses.length ? `, ${courses.length} ${courses.length === 1 ? 'course' : 'courses'}` : ''}. Only you can see this.
         </p>
       </header>
 
@@ -80,6 +116,63 @@ export default async function ShortlistPage({ searchParams }: Props) {
           ) : null}
         </>
       )}
+
+      <section id="courses" aria-labelledby="courses-h" className="grid gap-3">
+        <h2 id="courses-h" className="display text-2xl">University courses</h2>
+        {courses.length === 0 ? (
+          <p className="border-2 border-dashed border-ink bg-white p-6 text-slate-700">
+            No courses saved yet. Use <strong>Save course</strong> on any course in{' '}
+            <Link href="/universities" className="text-brand-700 underline">Universities</Link>.
+          </p>
+        ) : (
+          <ul className="grid gap-3 md:grid-cols-2">
+            {courses.map((c) => (
+              <li key={c.course_id} id={`c-${c.course_id}`} className="grid gap-2 border-2 border-ink bg-white p-4">
+                <div>
+                  <Link href={`/universities/${c.course_id}`} className="font-bold hover:underline">
+                    {c.uni_courses?.title ?? 'Course'}
+                  </Link>
+                  {c.uni_courses?.qualification ? <span className="ml-2 text-sm text-slate-600">{c.uni_courses.qualification}</span> : null}
+                  <p className="text-sm text-slate-700">{c.uni_courses?.universities?.name}</p>
+                </div>
+                {c.uni_courses ? (
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <TLevelBadge status={c.uni_courses.tlevel_status} requirement={c.uni_courses.tlevel_requirement} />
+                    {c.uni_courses.alevel_requirement ? <span className="text-slate-700">A levels: {c.uni_courses.alevel_requirement}</span> : null}
+                    {c.uni_courses.course_url ? (
+                      <a href={c.uni_courses.course_url} rel="noopener noreferrer nofollow" target="_blank" className="ml-auto font-semibold text-brand-700 underline">
+                        Course page
+                      </a>
+                    ) : null}
+                  </div>
+                ) : null}
+                <form action={updateCourse} className="grid gap-2 text-sm">
+                  <input type="hidden" name="course_id" value={c.course_id} />
+                  <label className="grid gap-1">
+                    <span className="font-medium">Where you are</span>
+                    <select name="stage" defaultValue={c.stage} className="border-2 border-ink px-2 py-1">
+                      {COURSE_STAGES.map(([id, label]) => (
+                        <option key={id} value={id}>{label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="font-medium">Notes</span>
+                    <textarea name="notes" defaultValue={c.notes ?? ''} maxLength={1000} rows={2} className="border-2 border-ink px-2 py-1" />
+                  </label>
+                  <div className="flex gap-2">
+                    <button className="border-2 border-ink bg-volt px-3 py-1 font-bold">Save</button>
+                  </div>
+                </form>
+                <form action={removeCourse}>
+                  <input type="hidden" name="course_id" value={c.course_id} />
+                  <button className="text-xs text-red-700 underline">Remove</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
