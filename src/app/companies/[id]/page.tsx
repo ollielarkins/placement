@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { SaveButton } from '@/components/SaveButton';
 import { AdjacentBadge, SourceBadge } from '@/components/SourceBadge';
 import { companyDetail, specialismNames, type CompanyContact, type CompanyDetail } from '@/lib/data';
+import { RATING_LABEL, companyReviews, type PublicReview, type ReviewSummary } from '@/lib/reviews';
 
 type CompanySource = CompanyDetail['sources'][number];
 import {
@@ -51,7 +52,7 @@ const FIELD_LABEL: Record<string, string> = {
 export default async function CompanyPage({ params }: Props) {
   const c = await companyDetail((await params).id);
   if (!c) notFound();
-  const specNames = await specialismNames();
+  const [specNames, reviews] = await Promise.all([specialismNames(), companyReviews(c.id)]);
   const name = displayName(c.name);
   const nameMatchSite = c.contacts.find((k) => k.kind === 'website' && k.confidence === 'name_match')?.value ?? null;
   const sourcesByField = new Map<string, CompanySource[]>();
@@ -188,6 +189,8 @@ export default async function CompanyPage({ params }: Props) {
         </Section>
       ) : null}
 
+      <Reviews companyId={c.id} name={name} reviews={reviews.reviews} summary={reviews.summary} />
+
       <Section title="Where this information comes from">
         {c.sources.length ? (
           <ul className="grid gap-2 text-sm">
@@ -209,10 +212,65 @@ export default async function CompanyPage({ params }: Props) {
           <p className="text-sm text-slate-600">No sources recorded.</p>
         )}
         <p className="mt-3 text-xs text-slate-500">
-          {c.verified_at ? `Last checked ${ukDate(c.verified_at)}. ` : ''}Spotted something wrong? Reporting is coming in a later update.
+          {c.verified_at ? `Last checked ${ukDate(c.verified_at)}. ` : ''}Spotted something wrong?{' '}
+          <Link href={`/report?type=company&id=${c.id}&back=${encodeURIComponent(`/companies/${c.id}`)}`} className="underline">
+            Tell us
+          </Link>
+          .
         </p>
       </Section>
     </article>
+  );
+}
+
+/** Published reviews: anonymised (T Level and year only), with averages. */
+function Reviews({ companyId, name, reviews, summary }: { companyId: string; name: string; reviews: PublicReview[]; summary: ReviewSummary }) {
+  const back = encodeURIComponent(`/companies/${companyId}`);
+  return (
+    <Section title={`Student reviews (${summary.count})`}>
+      {summary.count ? (
+        <dl className="mb-4 flex flex-wrap gap-x-8 gap-y-3">
+          {(Object.keys(RATING_LABEL) as (keyof typeof RATING_LABEL)[]).map((k) => (
+            <div key={k} className="grid content-start">
+              <dd className="display text-3xl leading-none">
+                {summary[k]?.toFixed(1) ?? '–'}
+                <span className="ml-1 font-sans text-sm font-bold text-slate-500">/ 5</span>
+              </dd>
+              <dt className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-600">{RATING_LABEL[k]}</dt>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="mb-3 text-sm text-slate-700">No reviews of {name} yet.</p>
+      )}
+      {reviews.length ? (
+        <ul className="grid gap-3">
+          {reviews.map((r) => (
+            <li key={r.id} className="grid gap-2 border-l-4 border-volt pl-3">
+              <p className="text-xs font-semibold text-slate-600">
+                {r.route_name ?? 'T Level student'}, {r.year} · Overall {r.ratings.overall}/5
+              </p>
+              <p className="whitespace-pre-line text-sm text-slate-900">{r.body}</p>
+              {r.tips ? (
+                <p className="whitespace-pre-line text-sm">
+                  <span className="font-semibold">Tips:</span> {r.tips}
+                </p>
+              ) : null}
+              <Link href={`/report?type=review&id=${r.id}&back=${back}`} className="w-fit text-xs text-slate-500 underline">
+                Report this review
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="mt-4 text-sm">
+        Did your placement here?{' '}
+        <Link href={`/account/reviews/new?company=${companyId}`} className="font-semibold text-brand-700 underline">
+          Review it
+        </Link>{' '}
+        to help the next student. Reviews show your T Level and the year only, and are checked before they go live.
+      </p>
+    </Section>
   );
 }
 

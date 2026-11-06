@@ -102,7 +102,7 @@ export default async function ApprenticeshipsPage({ searchParams }: Props) {
                     origin ? null : r.postcode?.split(' ')[0] ?? null,
                   ].filter((x): x is string => !!x),
                   note: r.tlevel_mention ? `“${r.tlevel_mention}”` : null,
-                  href: r.url ?? `/companies/${r.company_id}`,
+                  href: r.url ?? (r.company_id ? `/companies/${r.company_id}` : '/apprenticeships'),
                   external: !!r.url,
                 }))}
               />
@@ -214,9 +214,11 @@ function Advert({ r, showDistance }: { r: AdvertRow; showDistance: boolean }) {
         {level ? <span className={`border-2 px-2 py-0.5 ${LEVEL_STYLE[tone]}`}>{level}</span> : null}
         {r.tlevel_mention ? <span className="border-2 border-ink bg-volt px-2 py-0.5">Mentions T Levels</span> : null}
         {isNew(r) ? <span className="border-2 border-ink px-2 py-0.5">New this week</span> : null}
-        <span className="ml-auto">
-          <SaveButton companyId={r.company_id} compact />
-        </span>
+        {r.company_id ? (
+          <span className="ml-auto">
+            <SaveButton companyId={r.company_id} compact />
+          </span>
+        ) : null}
       </div>
       <div className="min-w-0">
         <h3 className="text-xl font-bold leading-tight">
@@ -229,9 +231,13 @@ function Advert({ r, showDistance }: { r: AdvertRow; showDistance: boolean }) {
           )}
         </h3>
         <p className="mt-0.5 text-slate-700">
-          <Link href={`/companies/${r.company_id}`} className="font-semibold text-ink hover:underline">
-            {displayName(r.employer)}
-          </Link>
+          {r.company_id ? (
+            <Link href={`/companies/${r.company_id}`} className="font-semibold text-ink hover:underline">
+              {displayName(r.employer)}
+            </Link>
+          ) : (
+            <span className="font-semibold text-ink">{displayName(r.employer)}</span>
+          )}
           {r.postcode ? ` · ${r.postcode.split(' ')[0]}` : ''}
         </p>
       </div>

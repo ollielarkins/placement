@@ -448,7 +448,8 @@ export interface AdvertRow {
   id: string;
   title: string;
   employer: string;
-  company_id: string;
+  /** Null when the employer matched no company (0037). */
+  company_id: string | null;
   course_title: string | null;
   course_level: number | null;
   level: string | null;

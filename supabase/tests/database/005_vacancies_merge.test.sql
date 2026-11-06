@@ -1,7 +1,7 @@
 -- pgTAP tests: import.merge_vacancies() and the CH import's added_by rule.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(18);
 
 create function pg_temp.stage(p_full boolean, p_rows jsonb) returns uuid
 language plpgsql as $$
@@ -61,8 +61,11 @@ select is((select action from import.vacancy_results where external_ref = '90000
   'two register matches: not guessed');
 select is((select action from import.vacancy_results where external_ref = '9000006'), 'unmatched',
   'no register match: not created');
-select is((select count(*)::int from public.vacancies where external_ref like '900000%'), 4,
-  'adverts stored for resolved employers only');
+-- Since 0037 unmatched adverts are kept too, without a company.
+select is((select count(*)::int from public.vacancies where external_ref like '900000%'), 6,
+  'every advert stored, unmatched ones included');
+select is((select count(*)::int from public.vacancies where external_ref in ('9000005', '9000006') and company_id is null), 2,
+  'unmatched adverts have no company');
 select is((select count(*)::int from public.company_sites s where s.company_id = '50000000-0000-0000-0000-00000000000b'
            and s.kind = 'vacancy_site' and s.postcode = 'SG15 6RW'), 1, 'advert address becomes a vacancy site');
 select is((select count(*)::int from public.company_sources where field = 'vacancies'

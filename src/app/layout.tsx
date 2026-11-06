@@ -69,9 +69,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 stored.
               </p>
             </div>
-            <nav aria-label="Footer" className="flex gap-4 self-end font-semibold">
+            <nav aria-label="Footer" className="flex flex-wrap gap-4 self-end font-semibold">
               <Link href="/privacy" className="underline decoration-volt decoration-2 underline-offset-4">Privacy</Link>
               <Link href="/regions" className="underline decoration-volt decoration-2 underline-offset-4">Regions</Link>
+              <Link href="/submit" className="underline decoration-volt decoration-2 underline-offset-4">Suggest a company</Link>
             </nav>
           </div>
         </footer>

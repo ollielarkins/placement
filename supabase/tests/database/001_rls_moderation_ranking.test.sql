@@ -223,11 +223,11 @@ select hasnt_column('public', 'reviews_public', 'user_id', 'public view never ex
 reset role;
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000a1"}';
-insert into public.reports (target_type, target_id, reason) values ('review', current_setting('fixture.review_id')::uuid, 'r1');
+insert into public.reports (target_type, target_id, reason) values ('review', current_setting('fixture.review_id')::uuid, 'other: r1');
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000a2"}';
-insert into public.reports (target_type, target_id, reason) values ('review', current_setting('fixture.review_id')::uuid, 'r2');
+insert into public.reports (target_type, target_id, reason) values ('review', current_setting('fixture.review_id')::uuid, 'other: r2');
 set local request.jwt.claims = '{"sub":"00000000-0000-0000-0000-0000000000a3"}';
-insert into public.reports (target_type, target_id, reason) values ('review', current_setting('fixture.review_id')::uuid, 'r3');
+insert into public.reports (target_type, target_id, reason) values ('review', current_setting('fixture.review_id')::uuid, 'other: r3');
 
 reset role;
 select is((select status::text from public.reviews where id = current_setting('fixture.review_id')::uuid),

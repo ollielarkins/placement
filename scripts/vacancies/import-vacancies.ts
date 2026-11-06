@@ -1,8 +1,12 @@
 // Apprenticeship vacancies import (Phase 0).
 //
 // Fetches every live "Engineering and manufacturing" advert from Find an
-// apprenticeship (Display Advert API v2), resolves each employer to a company,
-// and merges the adverts into public.vacancies. Employers we don't hold are
+// apprenticeship (Display Advert API v2), plus the engineering-type adverts
+// from "Construction and the built environment" (electrical, building
+// services, HVAC ...) and "Digital" (software, networks, cyber ...), resolves
+// each employer to a company, and merges the adverts into public.vacancies.
+// Adverts whose employer can't be matched are kept too, showing the
+// employer's name without a company page (0038). Employers we don't hold are
 // looked up by exact (normalised) name in the full Companies House register;
 // a single active match is added as an Imported company.
 //
@@ -25,6 +29,26 @@ import type { EnglandRegion, SizeBand } from '../../src/types/domain.ts';
 
 const API = 'https://api.apprenticeships.education.gov.uk/vacancies';
 const ROUTE = 'Engineering and manufacturing';
+// Other routes, and which of their adverts suit an Engineering T Level student.
+const EXTRA_ROUTES: Record<string, { keep: RegExp; drop: RegExp }> = {
+  'Construction and the built environment': {
+    keep: /electric|electrotechnical|building services|engineer|heating|ventilat|refrigerat|air[\s-]?condition|gas\b|plumb|installation|civil|surveying|\bBIM\b|technician|energy|low[\s-]?carbon|\bsmart\b|fire (and|&) security|\blift/i,
+    drop: /brick|plaster|paint|decorat|roof|carpent|joiner|til(e|ing)|stonemason|groundwork|scaffold|floor|dry[\s-]?lin|glaz|wood|demolition|site management|quantity surveyor|estate/i,
+  },
+  Digital: {
+    keep: /software|network|cyber|\bdata\b|infrastructure|cloud|devops|machine learning|artificial intelligence|\bAI\b|telecom|embedded|systems|developer|engineer|technician|IT support|digital support/i,
+    drop: /market|sales|business analyst|administrat|recruit|account|content|social media|graphic|UX|user experience|creative/i,
+  },
+};
+export const ROUTES = [ROUTE, ...Object.keys(EXTRA_ROUTES)];
+
+/** Whether an advert from another route is engineering-type enough to list. */
+export function relevantAdvert(route: string, title: string, courseTitle: string | null | undefined): boolean {
+  const rule = /^construction/i.test(route) ? EXTRA_ROUTES['Construction and the built environment'] : /^digital/i.test(route) ? EXTRA_ROUTES.Digital : undefined;
+  if (!rule) return true;
+  const text = `${title} ${courseTitle ?? ''}`;
+  return rule.keep.test(text) && !rule.drop.test(text);
+}
 const CACHE_DIR = '.data';
 
 interface ApiAddress {
@@ -169,8 +193,8 @@ export function advertDetails(a: ApiVacancy) {
 
 const isoDate = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null);
 
-async function getPage(key: string, page: number, attempt = 1): Promise<ApiPage> {
-  const url = `${API}/vacancy?Routes=${encodeURIComponent(ROUTE)}&PageSize=100&PageNumber=${page}&Sort=AgeDesc&IncludeDetails=true`;
+async function getPage(key: string, route: string, page: number, attempt = 1): Promise<ApiPage> {
+  const url = `${API}/vacancy?Routes=${encodeURIComponent(route)}&PageSize=100&PageNumber=${page}&Sort=AgeDesc&IncludeDetails=true`;
   try {
     const res = await fetch(url, {
       headers: { 'Ocp-Apim-Subscription-Key': key, 'X-Version': '2' },
@@ -182,22 +206,51 @@ async function getPage(key: string, page: number, attempt = 1): Promise<ApiPage>
   } catch (err) {
     if ((err as { fatal?: boolean }).fatal || attempt >= 5) throw err;
     await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
-    return getPage(key, page, attempt + 1);
+    return getPage(key, route, page, attempt + 1);
+  }
+}
+
+async function fetchRoute(key: string, route: string): Promise<ApiVacancy[]> {
+  const out: ApiVacancy[] = [];
+  const first = await getPage(key, route, 1);
+  out.push(...first.vacancies);
+  for (let p = 2; p <= first.totalPages; p++) {
+    await new Promise((r) => setTimeout(r, 250)); // be gentle
+    out.push(...(await getPage(key, route, p)).vacancies);
+  }
+  const unique = new Map(out.map((v) => [v.vacancyReference, v]));
+  if (unique.size < first.totalFiltered) {
+    console.warn(`${route}: expected ${first.totalFiltered} adverts, got ${unique.size} (list changed while paging?)`);
+  }
+  const kept = [...unique.values()].filter((v) => relevantAdvert(route, v.title, v.course?.title));
+  console.log(`  ${route}: ${unique.size} live, ${kept.length} kept`);
+  return kept;
+}
+
+/**
+ * The API's own names for our routes (its reference list), so a renamed route
+ * ("Construction and building" on the website) still matches. Falls back to
+ * the names above if the list can't be read.
+ */
+async function routeNames(key: string): Promise<string[]> {
+  try {
+    const res = await fetch(`${API}/referencedata/courses/routes`, {
+      headers: { 'Ocp-Apim-Subscription-Key': key, 'X-Version': '2' },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) return ROUTES;
+    const body = (await res.json()) as { routes?: (string | { route?: string; name?: string })[] };
+    const names = (body.routes ?? []).map((r) => (typeof r === 'string' ? r : r.route ?? r.name ?? '')).filter(Boolean);
+    const find = (re: RegExp, fallback: string) => names.find((n) => re.test(n)) ?? fallback;
+    return [find(/^engineering/i, ROUTE), find(/^construction/i, ROUTES[1]!), find(/^digital/i, ROUTES[2]!)];
+  } catch {
+    return ROUTES;
   }
 }
 
 async function fetchAll(key: string): Promise<ApiVacancy[]> {
-  const out: ApiVacancy[] = [];
-  const first = await getPage(key, 1);
-  out.push(...first.vacancies);
-  for (let p = 2; p <= first.totalPages; p++) {
-    await new Promise((r) => setTimeout(r, 250)); // be gentle
-    out.push(...(await getPage(key, p)).vacancies);
-  }
-  const unique = new Map(out.map((v) => [v.vacancyReference, v]));
-  if (unique.size < first.totalFiltered) {
-    console.warn(`expected ${first.totalFiltered} adverts, got ${unique.size} (list changed while paging?)`);
-  }
+  const unique = new Map<string, ApiVacancy>();
+  for (const route of await routeNames(key)) for (const v of await fetchRoute(key, route)) unique.set(v.vacancyReference, v);
   return [...unique.values()];
 }
 
@@ -264,7 +317,7 @@ async function main() {
   if (!key) throw new Error('FAA_API_KEY is not set (add it to .env)');
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set (add it to .env)');
 
-  console.log(`fetching "${ROUTE}" adverts from Find an apprenticeship`);
+  console.log('fetching engineering, construction and digital adverts from Find an apprenticeship');
   const adverts = await fetchAll(key);
   console.log(`${adverts.length} live adverts`);
 
@@ -342,7 +395,7 @@ async function main() {
     await db.query('begin');
     const run = await db.query<{ id: string }>(
       `insert into import.runs (source, file_name, is_full) values ('apprenticeship_vacancies', $1, true) returning id`,
-      [`display-advert-api-v2 ${ROUTE} ${new Date().toISOString()}`],
+      [`display-advert-api-v2 ${ROUTES.join(' + ')} ${new Date().toISOString()}`],
     );
     const runId = run.rows[0]!.id;
     await db.query(

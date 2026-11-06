@@ -195,6 +195,11 @@ function Card({ t }: { t: TrackerItem }) {
           className="text-brand-700 underline">
           {t.stage === 'contacted' ? 'Draft a follow-up' : 'Draft a message'}
         </Link>
+        {t.stage === 'secured' ? (
+          <Link href={`/account/reviews/new?company=${t.company_id}`} className="font-semibold text-brand-700 underline">
+            Review this placement
+          </Link>
+        ) : null}
       </p>
       <details>
         <summary className="cursor-pointer text-xs text-brand-700 underline">Update</summary>

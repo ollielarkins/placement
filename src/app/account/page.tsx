@@ -68,6 +68,7 @@ export default async function AccountPage({ searchParams }: Props) {
         </Link>
         <Link href="/account/liked" className="w-fit text-sm text-brand-700 underline">What you liked in card mode</Link>
         <Link href="/account/drafts" className="w-fit text-sm text-brand-700 underline">Your message drafts</Link>
+        <Link href="/account/reviews" className="w-fit text-sm text-brand-700 underline">Your reviews and suggestions</Link>
       </section>
 
       <form action="/auth/sign-out" method="post">

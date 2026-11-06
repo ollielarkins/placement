@@ -36,7 +36,7 @@ interface Liked {
     id: string;
     title: string;
     employer: string;
-    company_id: string;
+    company_id: string | null;
     closing_date: string | null;
     url: string | null;
     wage_text: string | null;
@@ -89,7 +89,7 @@ export default async function LikedPage() {
       {liked.vacancies.length ? (
         <Section title="Apprenticeships" count={liked.vacancies.length}>
           {liked.vacancies.map((v) => (
-            <Row key={v.id} type="vacancy" id={v.id} action={<SaveButton companyId={v.company_id} compact />}>
+            <Row key={v.id} type="vacancy" id={v.id} action={v.company_id ? <SaveButton companyId={v.company_id} compact /> : <span />}>
               {v.url ? (
                 <a href={v.url} rel="noopener noreferrer nofollow" target="_blank" className="font-bold hover:underline">{v.title}</a>
               ) : (
@@ -105,7 +105,11 @@ export default async function LikedPage() {
                   .filter(Boolean)
                   .join(' · ')}
               </p>
-              <p className="text-xs text-slate-500">Adding it to your shortlist saves the employer, so you can track your application.</p>
+              <p className="text-xs text-slate-500">
+                {v.company_id
+                  ? 'Adding it to your shortlist saves the employer, so you can track your application.'
+                  : 'We don’t have a company page for this employer yet, so apply through the advert.'}
+              </p>
             </Row>
           ))}
         </Section>
