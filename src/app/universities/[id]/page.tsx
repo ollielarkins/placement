@@ -174,6 +174,13 @@ function Rankings({ c }: { c: CourseDetail }) {
           <dd className="text-xs text-slate-600">
             {subj ? 'Among UK providers teaching this subject.' : 'Too few providers or too little data to rank fairly.'}
           </dd>
+          {c.subject_league_table_url ? (
+            <dd className="text-xs">
+              <a href={c.subject_league_table_url} rel="noopener noreferrer nofollow" target="_blank" className="font-semibold underline">
+                See {u.name} in the Complete University Guide {c.subject_label?.toLowerCase()} table
+              </a>
+            </dd>
+          ) : null}
         </div>
         <div className="grid content-start gap-1 border-2 border-ink bg-white p-4">
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{u.name}</dt>

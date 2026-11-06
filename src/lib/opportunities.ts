@@ -202,6 +202,8 @@ export interface CourseDetail {
   tlevel_scope: 'course' | 'university';
   alevel_requirement: string | null;
   subject_label: string | null;
+  /** The Complete University Guide table for this subject, where we have one (0031). */
+  subject_league_table_url: string | null;
   subject_rank: number | null;
   subject_rank_of: number | null;
   subject_rank_tied: boolean | null;
