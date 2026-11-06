@@ -151,3 +151,21 @@ test('Surrey live layout: buttons inline, label line ending in a colon', () => {
   assert.equal(readTLevels(tLevelPassages(pageText(html)), { courseTitle: 'Aerospace Engineering with Foundation Year' }).status, 'accepted');
   assert.equal(readTLevels(tLevelPassages(pageText(html)), { courseTitle: 'Aerospace Engineering' }).status, 'not_accepted');
 });
+
+test('A level Maths named in the T Level requirement, even after a full stop', () => {
+  const read = (q: string) => readTLevels([q]).status;
+  assert.equal(read('T levels Merit Overall in Digital Support Services or Digital Software Development. Alongside A level Maths grade C.'), 'accepted_with_maths');
+  assert.equal(read('T Level in Design and Development for Engineering and Manufacturing is considered. Merit overall with B in core component and B in A level Maths.'), 'accepted_with_maths');
+  assert.equal(read('Merit at T Level including grade B in A Level Maths.'), 'accepted_with_maths');
+  assert.equal(read('T-Level Distinction overall, with grade B in Core and Distinction in the Specialism. plus a grade A in A-level Mathematics.'), 'accepted_with_maths');
+  assert.equal(read('T Level: M and A2 Maths and Physics at grade BB'), 'accepted_with_maths');
+});
+
+test('not when A level Maths is only an alternative, a choice, or GCSE', () => {
+  const read = (q: string) => readTLevels([q]).status;
+  assert.equal(read('T level Merit T Level must be completed in a Maths subject or A Level Maths will be required.'), 'accepted');
+  assert.equal(read('T level Merit T Level must be completed in a subject that includes Maths components. Alternatively, A Level Maths would be required.'), 'accepted');
+  assert.equal(read('T Level Engineering is considered. Merit overall with B in core component and B in A level Maths or Physics.'), 'accepted');
+  assert.equal(read('T Levels Merit GCSE grade C/4 in Maths.'), 'accepted');
+  assert.equal(read('T Level: Merit. BTEC: DMM. A levels: BBB including A level Maths.'), 'accepted');
+});

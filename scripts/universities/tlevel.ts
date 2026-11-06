@@ -109,6 +109,35 @@ export function tLevelPassages(text: string): string[] {
   return out.slice(0, 6);
 }
 
+/**
+ * An A level (or A2) in Maths named in the T Level requirement itself, even
+ * across a full stop: "Merit overall with B in core component and B in A
+ * level Maths", "T levels Merit ... Alongside A level Maths grade C", "Merit
+ * at T Level including grade B in A Level Maths", "M and A2 Maths and
+ * Physics at grade BB". Read from the T Level mention up to the next
+ * qualification heading. Not when it's an alternative ("or A Level Maths will
+ * be required", "Alternatively, A Level Maths"), a choice ("A level Maths or
+ * Physics") or GCSE Maths.
+ */
+const NEXT_QUAL = /\b(BTEC|International\s+Baccalaureate|IB\s+Diploma|Access\s+to\s+(HE|Higher)|Scottish\s+Highers|Irish\s+Leaving|Cambridge\s+Pre-?U|European\s+Baccalaureate|A[\s-]?levels?\s*:)/i;
+const A_LEVEL_MATHS = /\b(?:A[\s-]?levels?|A2)\s+(?:in\s+)?(?:Further\s+)?(?:Mathematics|Maths)\b/gi;
+export function mathsAfterTLevel(p: string): boolean {
+  const t = p.search(/\bT[\s-]?Levels?\b/i);
+  if (t < 0) return false;
+  let seg = p.slice(t, t + 400);
+  const stop = seg.slice(8).search(NEXT_QUAL);
+  if (stop >= 0) seg = seg.slice(0, stop + 8);
+  for (const m of seg.matchAll(A_LEVEL_MATHS)) {
+    const before = seg.slice(Math.max(0, m.index! - 30), m.index);
+    const after = seg.slice(m.index! + m[0].length, m.index! + m[0].length + 40);
+    if (/\b(or|alternatively|unless|instead)\b[^.]*$/i.test(before)) continue;
+    if (/^\s*(or|\/)\s/i.test(after)) continue;
+    if (/^\s*(would|will|may)\s+be\s+required/i.test(after) && /\bor\b/i.test(before)) continue;
+    return true;
+  }
+  return false;
+}
+
 const NOT_ACCEPTED_BEFORE = /\b(do(es)?\s+not|don't|doesn't|cannot|can't|are\s+unable\s+to|is\s+unable\s+to|unable\s+to|(are|is)\s+(currently\s+)?not)\s+(currently\s+)?(accept|consider)\w*\s+(the\s+)?(any\s+)?T[\s-]?Levels?/i;
 const NOT_ACCEPTED_AFTER = /\bT[\s-]?Levels?\b([^.]{0,80}?)\b((are|is)\s+not\s+(currently\s+)?(accepted|acceptable|considered|suitable|eligible)|not\s+(accepted|acceptable|considered))/i;
 const NOT_ACCEPTED_DASH = /\bT[\s-]?Levels?\b\s*[-–:]?\s*we\s+(do\s+not|don't|cannot|can't|are\s+unable\s+to)\s+(currently\s+)?accept\b/i;
@@ -197,7 +226,7 @@ export function readTLevels(passages: string[], ctx: { courseTitle?: string } = 
   for (const p of passages) {
     // A passage naming only non-engineering T Levels says nothing about ours.
     if (OTHER_ROUTE_ONLY.test(p) && !ENGINEERING_ROUTE.test(p)) continue;
-    if (WITH_MATHS.some((r) => r.test(p))) found.push({ status: 'accepted_with_maths', passage: p });
+    if (WITH_MATHS.some((r) => r.test(p)) || mathsAfterTLevel(p)) found.push({ status: 'accepted_with_maths', passage: p });
     else if (saysNotAccepted(p)) found.push({ status: 'not_accepted', passage: p });
     else if (gradeSoonAfterTLevel(p)) found.push({ status: 'accepted', passage: p });
     else if (caseByCase(p)) found.push({ status: 'case_by_case', passage: p });
