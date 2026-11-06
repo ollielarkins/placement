@@ -4,16 +4,19 @@
 // Rules (spec, "Contacts", decided 04/11/2026):
 //   * Organisation routes only. Emails must be role mailboxes on the
 //     company's own domain; phone numbers must not be mobiles.
-//   * A guessed website only counts if the site itself names the company:
-//     its Companies House number (UK companies must show it on their
-//     website) or its registered office postcode.
+//   * A guessed website is "confirmed" if the site shows the company's
+//     Companies House number or registered office postcode. Otherwise it is
+//     a "name match" (decided 06/11/2026) only if the address is the full
+//     company name, the name is distinctive, the page names the company, the
+//     page isn't parked and it shows no other company's number. Name-match
+//     sites and their contacts are labelled "not confirmed".
 
 // cheerio/slim: the full entry point loads the undici package and installs it as
 // the global fetch dispatcher, which crashed long crawls on Node 26 (an
 // internal assert when a server closed a TLS connection mid-response).
 import * as cheerio from 'cheerio/slim';
 
-export type ContactKind = 'website' | 'careers_page' | 'apply_page' | 'contact_page' | 'contact_form' | 'email' | 'phone';
+export type ContactKind = 'website' | 'careers_page' | 'apply_page' | 'contact_page' | 'contact_form' | 'email' | 'phone' | 'linkedin';
 export type ContactPurpose = 'general' | 'careers' | 'early_careers' | 'apprenticeships' | 'placements' | 'hr';
 
 export interface FoundContact {
@@ -53,23 +56,37 @@ export function nameTokens(name: string): string[] {
 export function candidateHosts(name: string): string[] {
   const t = nameTokens(name);
   if (!t.length || t.every((w) => SUFFIXES.has(w))) return [];
-  const stems = new Set<string>();
-  stems.add(t.join(''));
-  if (t.length > 1) stems.add(t.join('-'));
-  if (t.length > 2) stems.add(t.slice(0, 2).join(''));
-  // Drop trailing generic words ("engineering", "group") for a shorter brand.
-  const generic = new Set(['engineering', 'group', 'systems', 'solutions', 'technology', 'technologies', 'manufacturing']);
-  const core = t.filter((w, i) => i === 0 || !generic.has(w));
-  if (core.length && core.length < t.length) stems.add(core.join(''));
+  const stems: string[] = [];
+  stems.push(t.join(''));
+  // The first word alone ("Earthmill Maintenance" -> earthmill.co.uk) when it
+  // is distinctive. Wrong guesses are harmless: a site only counts if it shows
+  // the company number or registered postcode.
+  if (t.length > 1 && t[0]!.length >= 5 && !GENERIC.has(t[0]!) && !COMMON_FIRST.has(t[0]!)) stems.push(t[0]!);
+  if (t.length > 1) stems.push(t.join('-'));
+  // Drop generic words ("engineering", "maintenance") for a shorter brand.
+  const core = t.filter((w, i) => i === 0 || !GENERIC.has(w));
+  if (core.length && core.length < t.length) stems.push(core.join(''));
+  if (t.length > 2) stems.push(t.slice(0, 2).join(''));
   const hosts: string[] = [];
-  for (const s of stems) {
+  for (const s of new Set(stems)) {
     if (s.length < 3 || s.length > 63) continue;
     // .co.uk and .com only: in 725 confirmed guesses, bare .uk matched 6.
     for (const tld of ['co.uk', 'com']) hosts.push(`${s}.${tld}`);
   }
-  // Hits came almost entirely from the first three stems.
-  return [...new Set(hosts)].slice(0, 8);
+  return [...new Set(hosts)].slice(0, 10);
 }
+
+const GENERIC = new Set([
+  'engineering', 'engineers', 'group', 'systems', 'solutions', 'technology', 'technologies', 'manufacturing',
+  'maintenance', 'services', 'service', 'industries', 'industrial', 'international', 'holdings', 'products',
+  'electrical', 'mechanical', 'fabrications', 'fabrication', 'precision', 'components', 'controls', 'design',
+]);
+// First words too common to identify a company on their own.
+const COMMON_FIRST = new Set([
+  'british', 'english', 'united', 'national', 'global', 'general', 'premier', 'advanced', 'northern', 'southern',
+  'eastern', 'western', 'central', 'midland', 'midlands', 'london', 'yorkshire', 'universal', 'modern', 'quality',
+  'specialist', 'professional', 'complete', 'total', 'smart', 'green', 'power', 'energy', 'metal', 'steel',
+]);
 
 // ---------------------------------------------------------------------------
 // Does this site belong to this company?
@@ -80,7 +97,7 @@ export interface Identity {
   postcodes: string[]; // registered office and known sites
 }
 
-export type Match = 'company_number' | 'postcode' | null;
+export type Match = 'company_number' | 'postcode' | 'name_match' | null;
 
 function flatText(html: string): string {
   const $ = cheerio.load(html);
@@ -111,6 +128,57 @@ export function matchIdentity(html: string, id: Identity): Match {
     if (re.test(text)) return 'postcode';
   }
   return null;
+}
+
+/** Host is the whole company name (acmewidgets.co.uk, acme-widgets.com), not a shortened guess. */
+export function isFullNameHost(host: string, name: string): boolean {
+  const t = nameTokens(name);
+  const stem = host.toLowerCase().replace(/^www\./, '').replace(/\.(co\.uk|com)$/, '');
+  return stem === t.join('') || stem === t.join('-');
+}
+
+/** A name specific enough that a matching web address is probably theirs. */
+export function isDistinctiveName(name: string): boolean {
+  const t = nameTokens(name).filter((w) => w !== 'and');
+  if (t.join('').length < 6) return false;
+  return t.some((w) => w.length >= 4 && !GENERIC.has(w) && !COMMON_FIRST.has(w) && !INDUSTRY.has(w) && !/^\d+$/.test(w));
+}
+
+// Industry and place words: a name made only of these ("Automotive Group",
+// "Marine Electronics") could belong to many firms.
+const INDUSTRY = new Set([
+  'automotive', 'aerospace', 'aviation', 'marine', 'electronics', 'electronic', 'motors', 'motor', 'vehicles', 'vehicle',
+  'tools', 'tooling', 'machinery', 'machines', 'machine', 'plastics', 'chemicals', 'pharma', 'medical', 'healthcare',
+  'construction', 'building', 'builders', 'civil', 'structures', 'steelwork', 'welding', 'engines', 'pumps', 'valves',
+  'hydraulics', 'pneumatics', 'automation', 'robotics', 'software', 'digital', 'data', 'telecom', 'telecoms', 'networks',
+  'lighting', 'cables', 'wire', 'heating', 'cooling', 'air', 'water', 'waste', 'recycling', 'rail', 'transport',
+  'logistics', 'trading', 'supplies', 'supply', 'equipment', 'instruments', 'sciences', 'science', 'research', 'labs',
+  'laboratories', 'consulting', 'consultants', 'contractors', 'installations', 'projects', 'company', 'partners',
+  'north', 'south', 'east', 'west', 'england', 'britain', 'newcastle', 'manchester', 'birmingham', 'leeds', 'bristol',
+]);
+
+const PARKED = /(domain (is )?for sale|buy this domain|this domain (name )?(has been|is) (registered|parked)|parked (free|domain)|domain parking|sedoparking|hugedomains|dan\.com|future home of|website coming soon|under construction|account (has been )?suspended)/i;
+
+/** The page (title or body) contains every word of the company name. */
+export function pageNamesCompany(html: string, name: string): boolean {
+  const $ = cheerio.load(html);
+  $('script, style, noscript, svg').remove();
+  const text = ` ${$('title').text()} ${$('body').text()} `.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ');
+  if (text.trim().length < 200 || PARKED.test(text)) return false;
+  const words = nameTokens(name).filter((w) => w !== 'and');
+  return words.length > 0 && words.every((w) => text.includes(` ${w} `));
+}
+
+/** The page shows a company number that isn't this company's (a namesake). */
+export function showsOtherCompanyNumber(html: string, chNumber: string | null): boolean {
+  const text = flatText(html);
+  const own = chNumber ? chNumber.replace(/^([A-Z]{2})?0*/i, '') : null;
+  const re = /(?:compan(?:y|ies)|regist(?:ered|ration))[^0-9]{0,40}?(?:no\.?|number|num|reg\.?)?[^0-9A-Z]{0,6}((?:SC|NI|OC|SO|NC)?\d{6,8})(?![0-9])/gi;
+  for (const m of text.matchAll(re)) {
+    const n = m[1]!.toUpperCase().replace(/^([A-Z]{2})?0*/, '');
+    if (!own || n !== own) return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,6 +315,21 @@ export function interestingLinks(html: string, pageUrl: string): PageLinks {
 }
 
 /** Contacts on one page of the company's own site. */
+/** https://www.linkedin.com/company/<slug>/ for a company page link, else null. */
+export function linkedInCompany(u: URL): string | null {
+  if (!/(^|\.)linkedin\.com$/i.test(u.hostname)) return null;
+  const m = u.pathname.match(/^\/company\/([^/?#]+)/i);
+  if (!m) return null;
+  let slug: string;
+  try {
+    slug = decodeURIComponent(m[1]!).toLowerCase();
+  } catch {
+    return null;
+  }
+  if (!/^[a-z0-9][a-z0-9._-]{1,99}$/.test(slug) || slug === 'linkedin') return null;
+  return `https://www.linkedin.com/company/${slug}/`;
+}
+
 export function extractContacts(html: string, pageUrl: string, opts: { isContactPage?: boolean } = {}): FoundContact[] {
   const $ = cheerio.load(html);
   const base = new URL(pageUrl);
@@ -292,7 +375,9 @@ export function extractContacts(html: string, pageUrl: string, opts: { isContact
   }
   for (const p of [...phones].slice(0, 2)) add({ kind: 'phone', purpose: 'general', value: p, label: null });
 
-  // Links to careers pages, applicant tracking systems and contact pages.
+  // Links to careers pages, applicant tracking systems, contact pages and the
+  // company's LinkedIn page (company pages only, never a person's profile).
+  const linkedIn = new Set<string>();
   $('a[href]').each((_, el) => {
     const href = $(el).attr('href')!;
     const text = $(el).text().replace(/\s+/g, ' ').trim();
@@ -306,6 +391,11 @@ export function extractContacts(html: string, pageUrl: string, opts: { isContact
     u.hash = '';
     const url = u.toString();
     const label = text && text.length <= 80 ? text : null;
+    const li = linkedInCompany(u);
+    if (li) {
+      linkedIn.add(li);
+      return;
+    }
     if (ATS.test(u.hostname)) {
       add({ kind: 'apply_page', purpose: purposeOf(`${text} ${href}`) === 'general' ? 'careers' : purposeOf(`${text} ${href}`), value: url, label });
     } else if (registrableDomain(u.hostname) === site && isCareersPath(u.pathname) && !CONTACT_LINK.test(text)) {
@@ -313,6 +403,15 @@ export function extractContacts(html: string, pageUrl: string, opts: { isContact
       add({ kind: 'careers_page', purpose: p === 'general' ? 'careers' : p, value: url, label });
     }
   });
+
+  // One LinkedIn page per site. Several (a group's brands, the web designer's)
+  // only count if one slug clearly carries the company's own site name.
+  if (linkedIn.size === 1) add({ kind: 'linkedin', purpose: 'general', value: [...linkedIn][0]!, label: null });
+  else if (linkedIn.size > 1) {
+    const brand = site.split('.')[0]!.replace(/[^a-z0-9]/g, '');
+    const hits = [...linkedIn].filter((v) => v.split('/')[4]!.replace(/[^a-z0-9]/g, '').includes(brand));
+    if (hits.length === 1) add({ kind: 'linkedin', purpose: 'general', value: hits[0]!, label: null });
+  }
 
   // A contact page with a form is a contact_form; otherwise a contact_page.
   if (opts.isContactPage) {
@@ -332,7 +431,7 @@ export function dedupe(list: FoundContact[]): FoundContact[] {
     if (!prev || (prev.purpose === 'general' && c.purpose !== 'general')) seen.set(key, c);
   }
   // Cap per kind so a sitemap-style footer can't flood a company page.
-  const caps: Record<ContactKind, number> = { website: 1, careers_page: 3, apply_page: 2, contact_page: 1, contact_form: 1, email: 4, phone: 2 };
+  const caps: Record<ContactKind, number> = { website: 1, careers_page: 3, apply_page: 2, contact_page: 1, contact_form: 1, email: 4, phone: 2, linkedin: 1 };
   const count: Partial<Record<ContactKind, number>> = {};
   return [...seen.values()].filter((c) => (count[c.kind] = (count[c.kind] ?? 0) + 1) <= caps[c.kind]);
 }

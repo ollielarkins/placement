@@ -53,6 +53,7 @@ export default async function CompanyPage({ params }: Props) {
   if (!c) notFound();
   const specNames = await specialismNames();
   const name = displayName(c.name);
+  const nameMatchSite = c.contacts.find((k) => k.kind === 'website' && k.confidence === 'name_match')?.value ?? null;
   const sourcesByField = new Map<string, CompanySource[]>();
   for (const x of c.sources) sourcesByField.set(x.field, [...(sourcesByField.get(x.field) ?? []), x]);
 
@@ -72,6 +73,10 @@ export default async function CompanyPage({ params }: Props) {
           {c.website ? (
             <a href={c.website} rel="noopener noreferrer nofollow" target="_blank" className="text-brand-700 underline">
               Website
+            </a>
+          ) : nameMatchSite ? (
+            <a href={nameMatchSite} rel="noopener noreferrer nofollow" target="_blank" className="text-brand-700 underline">
+              Website (not confirmed)
             </a>
           ) : null}
         </div>
@@ -253,6 +258,9 @@ function host(url: string) {
 function Provenance({ k }: { k: CompanyContact }) {
   return (
     <span className="text-xs text-slate-500">
+      {k.confidence === 'name_match' ? (
+        <strong className="font-semibold text-ink">Not confirmed: website found by company name only · </strong>
+      ) : null}
       {k.verified_at ? `Checked ${ukDate(k.verified_at)} · ` : 'Found automatically · '}
       <a className="underline" href={k.source_url} rel="noopener noreferrer nofollow" target="_blank">
         {host(k.source_url)}
@@ -266,7 +274,7 @@ function Provenance({ k }: { k: CompanyContact }) {
 // message themselves: the app never contacts employers.
 function Contacts({ c }: { c: CompanyDetail }) {
   const apply = c.contacts.filter((k) => k.kind === 'apply_page' || k.kind === 'careers_page');
-  const reach = c.contacts.filter((k) => ['email', 'phone', 'contact_form', 'contact_page'].includes(k.kind));
+  const reach = c.contacts.filter((k) => ['email', 'phone', 'contact_form', 'contact_page', 'linkedin'].includes(k.kind));
   const hasForm = reach.some((k) => k.kind === 'contact_form');
   const chUrl = c.ch_number ? `https://find-and-update.company-information.service.gov.uk/company/${c.ch_number}` : null;
 
@@ -303,7 +311,7 @@ function Contacts({ c }: { c: CompanyDetail }) {
                         <a className="text-brand-700 underline" href={`tel:${k.value.replace(/\s+/g, '')}`}>{k.value}</a>
                       ) : (
                         <a className="text-brand-700 underline" href={k.value} rel="noopener noreferrer nofollow" target="_blank">
-                          {k.kind === 'contact_form' ? 'Contact form' : 'Contact page'}
+                          {k.kind === 'contact_form' ? 'Contact form' : k.kind === 'linkedin' ? 'LinkedIn page' : 'Contact page'}
                         </a>
                       )}
                       <Provenance k={k} />
@@ -351,12 +359,14 @@ function OtherWays({ c, chUrl }: { c: CompanyDetail; chUrl: string | null }) {
             <span className="text-xs text-slate-500">Every company must accept post here. Write a letter or use it to find their website.</span>
           </li>
         ) : null}
-        <li className="grid">
-          <a className="text-brand-700 underline" href={linkedIn} rel="noopener noreferrer nofollow" target="_blank">
-            Find them on LinkedIn
-          </a>
-          <span className="text-xs text-slate-500">A search, not a checked page. Message the company page or apply through its jobs tab.</span>
-        </li>
+        {c.contacts.some((k) => k.kind === 'linkedin') ? null : (
+          <li className="grid">
+            <a className="text-brand-700 underline" href={linkedIn} rel="noopener noreferrer nofollow" target="_blank">
+              Find them on LinkedIn
+            </a>
+            <span className="text-xs text-slate-500">A search, not a checked page. Message the company page or apply through its jobs tab.</span>
+          </li>
+        )}
         <li className="grid">
           <a className="text-brand-700 underline" href={web} rel="noopener noreferrer nofollow" target="_blank">
             Search the web for their contact details

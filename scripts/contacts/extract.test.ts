@@ -25,7 +25,9 @@ test('candidate hosts cover joined, hyphenated and short forms', () => {
   const h = candidateHosts('Kampf Machinery UK Limited');
   assert.ok(h.includes('kampfmachinery.co.uk'));
   assert.ok(h.includes('kampf-machinery.com'));
-  assert.ok(h.length <= 8);
+  assert.ok(h.length <= 10);
+  assert.ok(candidateHosts('EARTHMILL MAINTENANCE LIMITED').includes('earthmill.co.uk'));
+  assert.ok(!candidateHosts('British Steel Engineering Ltd').includes('british.co.uk'));
   assert.ok(!h.some((x) => x.endsWith('.uk') && !x.endsWith('.co.uk')));
   assert.deepEqual(candidateHosts('Ltd'), []);
 });
@@ -139,4 +141,41 @@ test('phones: 10-digit fragments and premium numbers refused', () => {
 test('phones: unused UK ranges refused', () => {
   for (const p of ['06506 567540', '04963 971176', '0389 353 7636', '0812 812 8070']) assert.equal(normalisePhone(p), null, p);
   assert.equal(normalisePhone('0843 123 4567'), '0843 123 4567');
+});
+
+test('name match: full-name address, distinctive name, page names the company', async () => {
+  const { isFullNameHost, isDistinctiveName, pageNamesCompany, showsOtherCompanyNumber } = await import('./extract.ts');
+  assert.ok(isFullNameHost('muirheadaerospace.com', 'MUIRHEAD AEROSPACE LIMITED'));
+  assert.ok(isFullNameHost('muirhead-aerospace.co.uk', 'MUIRHEAD AEROSPACE LIMITED'));
+  assert.ok(!isFullNameHost('muirhead.co.uk', 'MUIRHEAD AEROSPACE LIMITED'));
+  // "(Newcastle upon Tyne)" is dropped from the name, so this is a full-name match;
+  // it is only kept if the page also passes pageNamesCompany and shows no other number.
+  assert.ok(isFullNameHost('automotivegroup.co.uk', 'AUTOMOTIVE GROUP (NEWCASTLE UPON TYNE) LIMITED'));
+  assert.ok(isDistinctiveName('Muirhead Aerospace Ltd'));
+  assert.ok(!isDistinctiveName('Engineering Services Ltd'));
+  assert.ok(!isDistinctiveName('British Power Systems Ltd'));
+  assert.ok(!isDistinctiveName('ABC Ltd'));
+  assert.ok(!isDistinctiveName('AUTOMOTIVE GROUP (NEWCASTLE UPON TYNE) LIMITED'));
+  assert.ok(isDistinctiveName('VAUXHALL MOTORS LIMITED'));
+  const filler = '<p>' + 'We design and build precision parts for industry. '.repeat(6) + '</p>';
+  assert.ok(pageNamesCompany(`<title>Muirhead Aerospace | Home</title><body>${filler}</body>`, 'MUIRHEAD AEROSPACE LIMITED'));
+  assert.ok(!pageNamesCompany(`<title>Muirhead</title><body>${filler}</body>`, 'MUIRHEAD AEROSPACE LIMITED'));
+  assert.ok(!pageNamesCompany(`<title>muirheadaerospace.com</title><body>Muirhead Aerospace - this domain is for sale ${filler}</body>`, 'MUIRHEAD AEROSPACE LIMITED'));
+  assert.ok(!pageNamesCompany('<body>Muirhead Aerospace</body>', 'MUIRHEAD AEROSPACE LIMITED')); // too thin
+  assert.ok(showsOtherCompanyNumber('<body>Earthmill Ltd. Registered company number 06845511.</body>', '10650107'));
+  assert.ok(!showsOtherCompanyNumber('<body>Registered in England No. 10650107</body>', '10650107'));
+  assert.ok(!showsOtherCompanyNumber('<body>Call 01423 123456 today</body>', '10650107'));
+});
+
+test('linkedin: company pages only, normalised, one per site', async () => {
+  const { linkedInCompany } = await import('./extract.ts');
+  assert.equal(linkedInCompany(new URL('https://uk.linkedin.com/company/Acme-Ltd?trk=x')), 'https://www.linkedin.com/company/acme-ltd/');
+  assert.equal(linkedInCompany(new URL('https://www.linkedin.com/in/jane-smith')), null);
+  assert.equal(linkedInCompany(new URL('https://www.linkedin.com/company/linkedin')), null);
+  const one = extractContacts('<body><a href="https://www.linkedin.com/company/acme-engineering/">LinkedIn</a><a href="https://www.linkedin.com/in/jane">Jane</a></body>', 'https://acme.co.uk/');
+  assert.deepEqual(one.filter((c) => c.kind === 'linkedin').map((c) => c.value), ['https://www.linkedin.com/company/acme-engineering/']);
+  const two = extractContacts('<body><a href="https://linkedin.com/company/acme-uk">A</a><a href="https://linkedin.com/company/webagency">W</a></body>', 'https://acme.co.uk/');
+  assert.deepEqual(two.filter((c) => c.kind === 'linkedin').map((c) => c.value), ['https://www.linkedin.com/company/acme-uk/']);
+  const amb = extractContacts('<body><a href="https://linkedin.com/company/foo">A</a><a href="https://linkedin.com/company/bar">W</a></body>', 'https://acme.co.uk/');
+  assert.equal(amb.filter((c) => c.kind === 'linkedin').length, 0);
 });

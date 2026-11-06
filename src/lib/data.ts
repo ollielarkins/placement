@@ -125,7 +125,7 @@ export interface CompanyDetail {
   colleges: CollegeLink[];
 }
 
-export type ContactKind = 'website' | 'careers_page' | 'apply_page' | 'contact_page' | 'contact_form' | 'email' | 'phone';
+export type ContactKind = 'website' | 'careers_page' | 'apply_page' | 'contact_page' | 'contact_form' | 'email' | 'phone' | 'linkedin';
 export type ContactPurpose = 'general' | 'careers' | 'early_careers' | 'apprenticeships' | 'placements' | 'hr';
 
 export interface CompanyContact {
@@ -137,6 +137,8 @@ export interface CompanyContact {
   method: 'curated' | 'crawler' | 'vacancy_import' | 'student_submitted';
   verified_at: string | null;
   last_seen_at: string;
+  /** name_match: website found by the company's full name only (0022). */
+  confidence: 'confirmed' | 'name_match';
 }
 
 export interface CollegeLink {

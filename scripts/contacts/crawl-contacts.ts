@@ -3,9 +3,11 @@
 // Works through every active company, slowly and resumably:
 //   1. Find the website. Known first (curated record, the employer's own
 //      website on an apprenticeship advert), otherwise guessed from the name
-//      (acme-engineering.co.uk, acmeengineering.com, ...). A guessed site
-//      only counts if it shows the company's Companies House number or its
-//      registered office postcode.
+//      (acme-engineering.co.uk, acmeengineering.com, ...). A guessed site is
+//      confirmed if it shows the company's Companies House number or its
+//      registered office postcode; failing that, a "name match" (full-name
+//      address, distinctive name, page names the company, no other company's
+//      number) is kept and labelled not confirmed. See extract.ts.
 //   2. Read the home page, up to two contact pages and two careers pages.
 //   3. Keep organisation routes only: role mailboxes on the company's own
 //      domain, non-mobile phone numbers, contact/careers/apply pages. The
@@ -33,7 +35,11 @@ import {
   dedupe,
   extractContacts,
   interestingLinks,
+  isDistinctiveName,
+  isFullNameHost,
   matchIdentity,
+  pageNamesCompany,
+  showsOtherCompanyNumber,
   mentionsName,
   type FoundContact,
   type Match,
@@ -61,6 +67,7 @@ interface Result {
   state: 'done' | 'no_site' | 'failed';
   site: string | null;
   matched_on: Match | 'curated' | 'vacancy_advert' | null;
+  confidence: 'confirmed' | 'name_match';
   contacts: FoundContact[];
   error?: string;
 }
@@ -87,7 +94,9 @@ async function crawlOne(f: PoliteFetcher, job: Job): Promise<Result> {
   // 2. Guessed websites, confirmed against the company's identity.
   if (!home) {
     const id = { chNumber: job.ch_number, postcodes: job.postcodes };
-    if (!id.chNumber && !id.postcodes.length) return { state: 'no_site', site: null, matched_on: null, contacts: [] };
+    const distinctive = isDistinctiveName(job.name);
+    let fallback: Page | null = null; // first name-match site, used only if nothing confirms
+    if (!id.chNumber && !id.postcodes.length) return { state: 'no_site', site: null, matched_on: null, confidence: 'confirmed', contacts: [] };
     for (const host of candidateHosts(job.name)) {
       if (!(await f.resolves(host))) continue;
       const page = (await f.get(`https://www.${host}/`)) ?? (await f.get(`https://${host}/`));
@@ -106,9 +115,15 @@ async function crawlOne(f: PoliteFetcher, job: Job): Promise<Result> {
         matched = m;
         break;
       }
+      if (!fallback && distinctive && isFullNameHost(host, job.name) && pageNamesCompany(page.html, job.name)
+          && !showsOtherCompanyNumber(page.html, job.ch_number)) fallback = page;
+    }
+    if (!home && fallback) {
+      home = fallback;
+      matched = 'name_match';
     }
   }
-  if (!home) return { state: 'no_site', site: null, matched_on: null, contacts: [] };
+  if (!home) return { state: 'no_site', site: null, matched_on: null, confidence: 'confirmed', contacts: [] };
 
   // 3. Contacts from the home page, contact pages and careers pages.
   const root = new URL(home.url);
@@ -124,7 +139,7 @@ async function crawlOne(f: PoliteFetcher, job: Job): Promise<Result> {
     const p = await f.get(u);
     if (p) found.push(...extractContacts(p.html, p.url));
   }
-  return { state: 'done', site, matched_on: matched, contacts: dedupe(found) };
+  return { state: 'done', site, matched_on: matched, confidence: matched === 'name_match' ? 'name_match' : 'confirmed', contacts: dedupe(found) };
 }
 
 async function save(pool: pg.Pool, job: Job, r: Result) {
@@ -138,12 +153,15 @@ async function save(pool: pg.Pool, job: Job, r: Result) {
       await db.query('savepoint one_contact');
       try {
         await db.query(
-          `insert into public.company_contacts (company_id, kind, purpose, value, label, source_url, method)
-           values ($1, $2, $3, $4, $5, $6, 'crawler')
+          `insert into public.company_contacts (company_id, kind, purpose, value, label, source_url, method, confidence)
+           values ($1, $2, $3, $4, $5, $6, 'crawler', $7)
            on conflict (company_id, kind, value) do update
              set last_seen_at = now(),
+                 -- never downgrade a confirmed contact
+                 confidence = case when excluded.confidence = 'confirmed' then 'confirmed'::public.contact_confidence
+                                   else company_contacts.confidence end,
                  source_url = case when company_contacts.method = 'crawler' then excluded.source_url else company_contacts.source_url end`,
-          [job.company_id, c.kind, c.purpose, c.value, c.label, c.source_url],
+          [job.company_id, c.kind, c.purpose, c.value, c.label, c.source_url, r.confidence],
         );
         await db.query('release savepoint one_contact');
       } catch (err) {
@@ -151,7 +169,9 @@ async function save(pool: pg.Pool, job: Job, r: Result) {
         console.error(`${job.name}: skipped ${c.kind} ${c.value}: ${(err as Error).message}`);
       }
     }
-    if (r.site && !job.website) {
+    // Only a confirmed site becomes the company's website; a name match stays
+    // a labelled contact.
+    if (r.site && !job.website && r.confidence === 'confirmed') {
       await db.query(`update public.companies set website = $2 where id = $1 and website is null`, [job.company_id, r.site]);
       await db.query(
         `insert into public.company_sources (company_id, field, url) values ($1, 'website', $2) on conflict do nothing`,
@@ -337,7 +357,7 @@ async function main() {
           }),
         ]).finally(() => clearTimeout(timer));
       } catch (err) {
-        r = { state: 'failed', site: null, matched_on: null, contacts: [], error: String(err).slice(0, 300) };
+        r = { state: 'failed', site: null, matched_on: null, confidence: 'confirmed', contacts: [], error: String(err).slice(0, 300) };
       }
       processed++;
       if (r.site) sites++;
