@@ -113,6 +113,11 @@ export const UNI_SORT_LABEL: Record<UniSort, string> = {
   name: 'University A to Z',
 };
 
+export const T_GRADES = { pass: 'Pass', merit: 'Merit', distinction: 'Distinction', distinction_star: 'Distinction*' } as const;
+export type TGrade = keyof typeof T_GRADES;
+export const A_GRADES = ['A*', 'A', 'B', 'C', 'D', 'E'] as const;
+export type AGrade = (typeof A_GRADES)[number] | 'none';
+
 export interface UniSearch {
   oc: string | null;
   km: number; // 0 = anywhere
@@ -124,6 +129,10 @@ export interface UniSearch {
   russell: boolean;
   /** UKPRNs of universities to leave out. */
   hide: string[];
+  /** Your expected T Level grade: courses asking for this or lower. */
+  tgrade: TGrade | null;
+  /** Your A level grade alongside the T Level ('none' = not taking one). */
+  agrade: AGrade | null;
   fy: 'yes' | 'no' | null; // foundation year available / not
   sort: UniSort;
   page: number;
@@ -143,6 +152,8 @@ export function parseUniSearch(p: Params): UniSearch {
     dfe: one(p, 'dfe') === '1',
     russell: one(p, 'rg') === '1',
     hide: [...new Set(many(p, 'xu').filter((x) => /^[0-9]{8}$/.test(x)))].slice(0, 100),
+    tgrade: (one(p, 'tg') ?? '') in T_GRADES ? (one(p, 'tg') as TGrade) : null,
+    agrade: one(p, 'ag') === 'none' || (A_GRADES as readonly string[]).includes(one(p, 'ag') ?? '') ? (one(p, 'ag') as AGrade) : null,
     fy: one(p, 'fy') === 'yes' ? 'yes' : one(p, 'fy') === 'no' ? 'no' : null,
     sort: (UNI_SORTS as readonly string[]).includes(one(p, 'sort') ?? '') ? (one(p, 'sort') as UniSort) : 'default',
     page: int(one(p, 'page'), 1, 100, 1),
@@ -161,6 +172,8 @@ export function uniHref(s: UniSearch, over: Partial<UniSearch> = {}): string {
   if (v.dfe) u.set('dfe', '1');
   if (v.russell) u.set('rg', '1');
   for (const x of v.hide) u.append('xu', x);
+  if (v.tgrade) u.set('tg', v.tgrade);
+  if (v.agrade) u.set('ag', v.agrade);
   if (v.fy) u.set('fy', v.fy);
   if (v.sort !== 'default') u.set('sort', v.sort);
   if (v.page > 1) u.set('page', String(v.page));
@@ -220,6 +233,8 @@ export async function searchUniCourses(s: UniSearch, origin: OutcodeCentroid | n
   if (s.nation) p.nation = s.nation;
   if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
   if (s.hide.length) p.hide = s.hide;
+  if (s.tgrade) p.tgrade = s.tgrade;
+  if (s.agrade) p.agrade = s.agrade;
   const rows = await cachedRpc<CourseRow[]>('search_uni_courses', p);
   return { rows, total: Number(rows[0]?.total ?? 0) };
 }
@@ -239,6 +254,8 @@ export async function uniCourseUniversities(s: UniSearch, origin: OutcodeCentroi
   if (s.group) p.group = s.group;
   if (s.nation) p.nation = s.nation;
   if (origin) Object.assign(p, { lat: origin.lat, lng: origin.lng, km: s.km });
+  if (s.tgrade) p.tgrade = s.tgrade;
+  if (s.agrade) p.agrade = s.agrade;
   const rows = await cachedRpc<UniFacet[]>('uni_course_universities', p);
   // "University of Bath" files under B, next to "Bath Spa University".
   const key = (n: string) => n.replace(/^(the\s+)?university\s+(of\s+(the\s+)?)?/i, '').toLowerCase();

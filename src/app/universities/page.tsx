@@ -10,8 +10,10 @@ import { miles } from '@/lib/format';
 import {
   CUG_NAME,
   CUG_URL,
+  A_GRADES,
   NATIONS,
   STATUS_ORDER,
+  T_GRADES,
   UNI_SORTS,
   UNI_SORT_LABEL,
   SUBJECT_GROUPS,
@@ -297,6 +299,8 @@ function Filters({ s, cards, unis }: { s: UniSearch; cards: boolean; unis: UniFa
         {s.dfe ? <input type="hidden" name="dfe" value="1" /> : null}
         {s.russell ? <input type="hidden" name="rg" value="1" /> : null}
         {s.hide.map((x) => <input key={x} type="hidden" name="xu" value={x} />)}
+        {s.tgrade ? <input type="hidden" name="tg" value={s.tgrade} /> : null}
+        {s.agrade ? <input type="hidden" name="ag" value={s.agrade} /> : null}
         {s.fy ? <input type="hidden" name="fy" value={s.fy} /> : null}
         {s.sort !== 'default' ? <input type="hidden" name="sort" value={s.sort} /> : null}
         <label className="grid gap-1">
@@ -353,6 +357,31 @@ function Filters({ s, cards, unis }: { s: UniSearch; cards: boolean; unis: UniFa
           <input type="checkbox" name="rg" value="1" defaultChecked={s.russell} />
           Only Russell Group universities
         </label>
+        <fieldset className="grid gap-2 border-2 border-ink p-2">
+          <legend className="px-1 font-medium">Your grades</legend>
+          <label className="grid gap-1">
+            <span className="text-xs text-slate-600">T Level grade you expect</span>
+            <select name="tg" defaultValue={s.tgrade ?? ''} className="border-2 border-ink px-2 py-1">
+              <option value="">Any grade</option>
+              {Object.entries(T_GRADES).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1">
+            <span className="text-xs text-slate-600">A level grade alongside it, if any</span>
+            <select name="ag" defaultValue={s.agrade ?? ''} className="border-2 border-ink px-2 py-1">
+              <option value="">Show all</option>
+              <option value="none">I&apos;m not taking an A level</option>
+              {A_GRADES.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </label>
+          <p className="text-xs text-slate-500">
+            Shows courses that ask for your grade or lower. Courses that don&apos;t say which grade are kept, so check them.
+          </p>
+        </fieldset>
         <label className="grid gap-1">
           <span className="font-medium">Foundation year</span>
           <select name="fy" defaultValue={s.fy ?? ''} className="border-2 border-ink px-2 py-1">
