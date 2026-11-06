@@ -80,7 +80,7 @@ export default async function CoursePage({ params }: Props) {
           T Level entry
         </h2>
         <div className="flex flex-wrap items-center gap-3">
-          <TLevelBadge status={c.tlevel_status} requirement={c.tlevel_requirement} large />
+          <TLevelBadge status={c.tlevel_status} requirement={c.tlevel_requirement} alevel={c.tlevel_alevel} large />
           <span className="text-slate-700">{st.help}</span>
         </div>
         {c.tlevel_quote ? (

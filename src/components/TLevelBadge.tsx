@@ -1,4 +1,4 @@
-import { TLEVEL_STATUS, type TLevelStatus } from '@/lib/opportunities';
+import { TLEVEL_STATUS, tlevelTagText, type TLevelStatus } from '@/lib/opportunities';
 
 const STYLE: Record<TLevelStatus, string> = {
   accepted: 'bg-volt text-ink border-ink',
@@ -8,17 +8,24 @@ const STYLE: Record<TLevelStatus, string> = {
   unknown: 'bg-white text-slate-700 border-dashed border-slate-500',
 };
 
-/** What the course page says about T Levels. */
-export function TLevelBadge({ status, requirement, large = false }: { status: TLevelStatus; requirement?: string | null; large?: boolean }) {
-  const s = TLEVEL_STATUS[status];
-  const req = requirement && (status === 'accepted' || status === 'accepted_with_maths') ? ` · ${requirement}` : '';
+/** What the course page says about T Levels, with the grade and any A level needed alongside. */
+export function TLevelBadge({
+  status,
+  requirement,
+  alevel,
+  large = false,
+}: {
+  status: TLevelStatus;
+  requirement?: string | null;
+  alevel?: string | null;
+  large?: boolean;
+}) {
   return (
     <span
-      title={s.help}
+      title={TLEVEL_STATUS[status].help}
       className={`inline-block border-2 font-bold ${large ? 'px-3 py-1 text-base' : 'px-2 py-0.5 text-xs'} ${STYLE[status]}`}
     >
-      {large ? s.label : s.short}
-      {req}
+      {tlevelTagText(status, requirement, alevel, large)}
     </span>
   );
 }

@@ -50,9 +50,9 @@ export const TLEVEL_STATUS: Record<TLevelStatus, { label: string; short: string;
     help: 'The course page says an engineering T Level meets the entry requirement.',
   },
   accepted_with_maths: {
-    label: 'T Level + A level Maths',
-    short: 'With A level Maths',
-    help: 'Accepted only alongside A level Maths (or a similar maths qualification).',
+    label: 'T Level + A level',
+    short: 'T Level + A level',
+    help: 'Accepted only alongside an A level, usually Maths. The tag shows which A level and the grade when the course page says.',
   },
   case_by_case: {
     label: 'Case by case',
@@ -70,6 +70,18 @@ export const TLEVEL_STATUS: Record<TLevelStatus, { label: string; short: string;
     help: 'We couldn’t find a clear statement about T Levels on the course page.',
   },
 };
+/**
+ * The tag's text: "T Level Merit + A level Maths at B", "T Level accepted · Distinction".
+ * Only a grade word is shown as the T Level grade; longer wording stays in the quote.
+ */
+export function tlevelTagText(status: TLevelStatus, requirement: string | null | undefined, alevel: string | null | undefined, long = false): string {
+  const s = TLEVEL_STATUS[status];
+  const grade = requirement && /^(Pass|Merit|Distinction\*?|D\*?|M|P)\b/i.test(requirement) ? requirement : null;
+  if (status === 'accepted_with_maths') return `T Level${grade ? ` ${grade}` : ''} + ${alevel ?? 'an A level'}`;
+  if (status === 'accepted' && requirement) return `${long ? s.label : s.short} · ${requirement}`;
+  return long ? s.label : s.short;
+}
+
 export const STATUS_ORDER: TLevelStatus[] = ['accepted', 'accepted_with_maths', 'case_by_case', 'not_accepted', 'unknown'];
 
 export const SUBJECT_GROUPS: Record<Exclude<SubjectGroup, 'other'>, string> = {
@@ -164,6 +176,8 @@ export interface CourseRow {
   distance_km: number | null;
   tlevel_status: TLevelStatus;
   tlevel_requirement: string | null;
+  /** For accepted_with_maths: the A level asked for alongside, e.g. "A level Maths at B" (0034). */
+  tlevel_alevel: string | null;
   course_url: string | null;
   foundation_year: boolean | null;
   sandwich_year: boolean | null;
@@ -221,6 +235,7 @@ export interface CourseDetail {
   entry_other_pct: number | null;
   tlevel_status: TLevelStatus;
   tlevel_requirement: string | null;
+  tlevel_alevel: string | null;
   tlevel_quote: string | null;
   tlevel_quote_url: string | null;
   tlevel_assessed_by: 'rules' | 'claude' | 'curated' | null;

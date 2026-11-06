@@ -19,7 +19,7 @@ import * as cheerio from 'cheerio/slim';
 import pg from 'pg';
 import { PoliteFetcher } from '../contacts/fetcher.ts';
 import { classifyWithClaude } from './classify-claude.ts';
-import { aLevelRequirement, pageText, readTLevels, tLevelPassages, type Reading } from './tlevel.ts';
+import { aLevelAlongside, aLevelRequirement, pageText, readTLevels, tLevelPassages, type Reading } from './tlevel.ts';
 
 function loadEnv() {
   if (!existsSync('.env')) return;
@@ -195,10 +195,11 @@ async function main() {
         await db.query(
           `update public.uni_courses set tlevel_status = $2, tlevel_requirement = $3, tlevel_quote = $4, tlevel_quote_url = $5,
                   tlevel_assessed_by = $6, tlevel_assessed_at = now(), tlevel_scope = 'course',
-                  alevel_requirement = coalesce($7, alevel_requirement)
+                  alevel_requirement = coalesce($7, alevel_requirement), tlevel_alevel = $8
             where id = $1 and tlevel_assessed_by is distinct from 'curated'`,
           // An unclear passage is kept with "unknown" so students can read it themselves.
-          [c.id, r.status, r.requirement, r.quote, r.quote ? r.quoteUrl : null, r.by, r.alevel],
+          [c.id, r.status, r.requirement, r.quote, r.quote ? r.quoteUrl : null, r.by, r.alevel,
+           r.status === 'accepted_with_maths' && r.quote ? aLevelAlongside(r.quote) : null],
         );
       }
       if (++done % 100 === 0) {

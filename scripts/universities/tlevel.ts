@@ -20,6 +20,8 @@ export interface Reading {
   requirement: string | null; // e.g. "Distinction" or "D*"
   quote: string | null; // the passage relied on (verbatim from the page text)
   ambiguous: boolean; // a T Level passage exists but rules couldn't decide
+  /** For accepted_with_maths: the A level asked for alongside, e.g. "A level Maths at B". */
+  alongside?: string | null;
 }
 
 const T_LEVEL = /\bT[\s-]?Levels?\b/gi;
@@ -110,33 +112,78 @@ export function tLevelPassages(text: string): string[] {
 }
 
 /**
- * An A level (or A2) in Maths named in the T Level requirement itself, even
- * across a full stop: "Merit overall with B in core component and B in A
- * level Maths", "T levels Merit ... Alongside A level Maths grade C", "Merit
- * at T Level including grade B in A Level Maths", "M and A2 Maths and
- * Physics at grade BB". Read from the T Level mention up to the next
- * qualification heading. Not when it's an alternative ("or A Level Maths will
- * be required", "Alternatively, A Level Maths"), a choice ("A level Maths or
- * Physics") or GCSE Maths.
+ * An A level (or AS level) asked for alongside the T Level, read from the T
+ * Level mention up to the next qualification heading, even across a full
+ * stop: "Merit overall with B in core component and B in A level Maths",
+ * "Alongside A level Maths grade C", "M and A2 Maths and Physics at grade BB",
+ * "plus AS Level Maths at B", "provided a grade B is obtained in A Level Maths
+ * and grade C in A Level Physics", "only accepted alongside A levels in
+ * relevant subjects". Returns what is needed in words ("A level Maths at B",
+ * "A levels: Maths at B, Physics at C"), or null.
+ *
+ * Not when the A level is an alternative ("or A Level Maths will be
+ * required", "Alternatively, A Level Maths"), a comparison ("equivalent to
+ * three A levels", "our standard A-level requirements"), a list of accepted
+ * qualifications ("T Levels, A Levels and BTEC"), or a rule for A level
+ * applicants ("A Levels must include Mathematics").
  */
-const NEXT_QUAL = /\b(BTEC|International\s+Baccalaureate|IB\s+Diploma|Access\s+to\s+(HE|Higher)|Scottish\s+Highers|Irish\s+Leaving|Cambridge\s+Pre-?U|European\s+Baccalaureate|A[\s-]?levels?\s*:)/i;
-const A_LEVEL_MATHS = /\b(?:A[\s-]?levels?|A2)\s+(?:in\s+)?(?:Further\s+)?(?:Mathematics|Maths)\b/gi;
-export function mathsAfterTLevel(p: string): boolean {
+const NEXT_QUAL = /\b(BTEC|International\s+Baccalaureate|IB\s+Diploma|Access\s+to\s+(HE|Higher)|Scottish\s+Highers|Irish\s+Leaving|Cambridge\s+Pre-?U|European\s+Baccalaureate|Mixed\s+Qualifications|OCR\s+Cambridge|GCSE\s+requirements|A[\s-]?levels?\s*:)/i;
+const SUBJECT = '(?:Further\\s+)?(?:Mathematics|Maths|Physics|Chemistry|Computer\\s+Science|Computing|Biology|Electronics|Engineering|Design\\s+(?:and|&)\\s+Technology)';
+const SUBJECTS = new RegExp(`^\\s*(?:\\((?:or\\s+)?equivalent\\s+qualifications?\\)\\s*)?(?:in\\s+)?(${SUBJECT}(?:\\s*(?:,|and\\/or|and|or)\\s*${SUBJECT})*|relevant\\s+subjects?|a\\s+relevant\\s+subject)`, 'i');
+const CONNECTOR = /\b(plus|with|alongside|and|including|include|additional|additionally|provided|together\s+with|as\s+well\s+as|in\s+addition\s+to|also)\b[^.]{0,40}$|\+\s*$/i;
+const GRADE_BEFORE = /\b(?:grade\s+)?([A-E]\*?[A-E]?\*?)\s+(?:is\s+obtained\s+|is\s+achieved\s+)?(?:in|at)\s+(?:an?\s+)?(?:additional\s+)?$/;
+const GRADE_AFTER = /^[^.]{0,40}?(?:\bat\s+(?:grade\s+)?|\bgrade\s+)([A-E]\*?[A-E]?\*?)(?![\w-])/;
+const tidy = (x: string) =>
+  x.replace(/\s+/g, ' ').replace(/\bMathematics\b/gi, 'Maths').replace(/\band\/or\b/gi, 'and/or').replace(/^a relevant subject$/i, 'a relevant subject').trim();
+
+export function aLevelAlongside(p: string): string | null {
   const t = p.search(/\bT[\s-]?Levels?\b/i);
-  if (t < 0) return false;
-  let seg = p.slice(t, t + 400);
+  if (t < 0) return null;
+  let seg = p.slice(t, t + 420);
   const stop = seg.slice(8).search(NEXT_QUAL);
   if (stop >= 0) seg = seg.slice(0, stop + 8);
-  for (const m of seg.matchAll(A_LEVEL_MATHS)) {
-    const before = seg.slice(Math.max(0, m.index! - 30), m.index);
-    const after = seg.slice(m.index! + m[0].length, m.index! + m[0].length + 40);
-    if (/\b(or|alternatively|unless|instead)\b[^.]*$/i.test(before)) continue;
-    if (/^\s*(or|\/)\s/i.test(after)) continue;
-    if (/^\s*(would|will|may)\s+be\s+required/i.test(after) && /\bor\b/i.test(before)) continue;
-    return true;
+  const found: { as: boolean; subjects: string | null; grade: string | null }[] = [];
+  // Capital A only: "a level 5 qualification" is not an A level.
+  for (const m of seg.matchAll(/\b(AS|A2|A)[\s-]?([Ll]evels?|LEVELS?)?\b/g)) {
+    const kind = m[1]!.toUpperCase();
+    if (kind !== 'A2' && !m[2]) continue; // a bare "A" is a grade, not "A level"
+    const i = m.index!;
+    const before = seg.slice(Math.max(0, i - 60), i);
+    const after = seg.slice(i + m[0].length, i + m[0].length + 80);
+    // "A level Maths grade A or A level Computer Science grade A": another subject for the same requirement.
+    if (found.length && /\bor\s+$/i.test(before)) {
+      const alt = SUBJECTS.exec(after);
+      const last = found[found.length - 1]!;
+      if (alt && last.subjects && !last.subjects.includes(tidy(alt[1]!))) last.subjects = `${last.subjects} or ${tidy(alt[1]!)}`;
+      continue;
+    }
+    if (/\b(or|alternatively,?|instead\s+of)\s+(an?\s+)?(additional\s+)?$/i.test(before)) continue;
+    if (/\b(equivalent\s+to|alternative\s+to|standard|three|3)\b[^.]{0,25}$/i.test(before)) continue;
+    if (/^\s*(or\b|\/|,|and\s+BTEC|must\s+include|should\s+include|requirements?\b|offers?\b|\(or\s+equivalent\)\s+qualifications\s+must)/i.test(after)) continue;
+    if (/\bT[\s-]?Levels?\s*,\s*$/i.test(before)) continue; // "T Levels, A Levels and BTEC"
+    const subj = SUBJECTS.exec(after);
+    const gradeB = GRADE_BEFORE.exec(before);
+    const gradeA = GRADE_AFTER.exec(after);
+    const needed = /^[^.]{0,60}\b(is|are|will\s+be)\s+(still\s+|also\s+)?(required|needed|essential)\b/i.test(after);
+    if (!gradeB && !gradeA && !needed && !CONNECTOR.test(before)) continue;
+    found.push({ as: kind === 'AS', subjects: subj ? tidy(subj[1]!) : null, grade: (gradeB?.[1] ?? gradeA?.[1])?.toUpperCase() ?? null });
   }
-  return false;
+  if (!found.length) return null;
+  // The same requirement said twice ("Only accepted alongside A level Maths grade B ... alongside A level Maths grade B").
+  const uniq = found.filter((f, i) => f.subjects && found.findIndex((g) => g.subjects === f.subjects && g.as === f.as) === i);
+  if (uniq.length) found.splice(0, found.length, ...uniq);
+  const one = (f: (typeof found)[number], lead: boolean) => {
+    const level = f.as ? 'AS level' : /\b(and|,)\b/.test(f.subjects ?? '') || /relevant subjects/i.test(f.subjects ?? '') ? 'A levels' : 'A level';
+    const subj = f.subjects ? (level === 'A levels' ? ` in ${f.subjects}` : ` ${f.subjects}`) : level === 'A level' ? ' in a related subject' : '';
+    const g = f.grade ? ` at ${f.grade}` : '';
+    return lead ? `${level}${subj}${g}` : `${f.subjects ?? 'another subject'}${g}`;
+  };
+  if (found.length === 1) return one(found[0]!, true);
+  return `A levels: ${found.map((f) => one(f, false)).join(', ')}`.slice(0, 120);
 }
+
+/** Back-compatible name used by the relabelling script. */
+export const mathsAfterTLevel = (p: string): boolean => aLevelAlongside(p) !== null;
 
 const NOT_ACCEPTED_BEFORE = /\b(do(es)?\s+not|don't|doesn't|cannot|can't|are\s+unable\s+to|is\s+unable\s+to|unable\s+to|(are|is)\s+(currently\s+)?not)\s+(currently\s+)?(accept|consider)\w*\s+(the\s+)?(any\s+)?T[\s-]?Levels?/i;
 const NOT_ACCEPTED_AFTER = /\bT[\s-]?Levels?\b([^.]{0,80}?)\b((are|is)\s+not\s+(currently\s+)?(accepted|acceptable|considered|suitable|eligible)|not\s+(accepted|acceptable|considered))/i;
@@ -260,6 +307,7 @@ export function readTLevels(passages: string[], ctx: { courseTitle?: string } = 
       requirement: f.status === 'accepted' || f.status === 'accepted_with_maths' ? gradeIn(f.passage) : null,
       quote: f.passage,
       ambiguous: false,
+      alongside: f.status === 'accepted_with_maths' ? aLevelAlongside(f.passage) : null,
     };
   }
   return { status: 'unknown', requirement: null, quote: passages[0]!, ambiguous: true };

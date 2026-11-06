@@ -30,6 +30,7 @@ interface SavedCourse {
     course_url: string | null;
     tlevel_status: TLevelStatus;
     tlevel_requirement: string | null;
+    tlevel_alevel: string | null;
     alevel_requirement: string | null;
     universities: { name: string } | null;
   } | null;
@@ -52,7 +53,7 @@ export default async function ShortlistPage({ searchParams }: Props) {
   const items = (data ?? []) as unknown as TrackerItem[];
   const { data: courseData } = await db
     .from('course_shortlist')
-    .select('course_id, stage, notes, uni_courses(title, qualification, course_url, tlevel_status, tlevel_requirement, alevel_requirement, universities(name))')
+    .select('course_id, stage, notes, uni_courses(title, qualification, course_url, tlevel_status, tlevel_requirement, tlevel_alevel, alevel_requirement, universities(name))')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
   const courses = (courseData ?? []) as unknown as SavedCourse[];
@@ -137,7 +138,7 @@ export default async function ShortlistPage({ searchParams }: Props) {
                 </div>
                 {c.uni_courses ? (
                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <TLevelBadge status={c.uni_courses.tlevel_status} requirement={c.uni_courses.tlevel_requirement} />
+                    <TLevelBadge status={c.uni_courses.tlevel_status} requirement={c.uni_courses.tlevel_requirement} alevel={c.uni_courses.tlevel_alevel} />
                     {c.uni_courses.alevel_requirement ? <span className="text-slate-700">A levels: {c.uni_courses.alevel_requirement}</span> : null}
                     {c.uni_courses.course_url ? (
                       <a href={c.uni_courses.course_url} rel="noopener noreferrer nofollow" target="_blank" className="ml-auto font-semibold text-brand-700 underline">

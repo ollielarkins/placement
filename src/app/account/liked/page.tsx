@@ -19,6 +19,7 @@ interface Liked {
     university: string;
     tlevel_status: TLevelStatus;
     tlevel_requirement: string | null;
+    tlevel_alevel: string | null;
     course_url: string | null;
     subject_label: string | null;
     subject_rank: number | null;
@@ -142,7 +143,7 @@ export default async function LikedPage() {
                   .filter(Boolean)
                   .join(' · ')}
               </p>
-              <TLevelBadge status={c.tlevel_status} requirement={c.tlevel_requirement} />
+              <TLevelBadge status={c.tlevel_status} requirement={c.tlevel_requirement} alevel={c.tlevel_alevel} />
             </Row>
           ))}
         </Section>

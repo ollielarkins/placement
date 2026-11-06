@@ -1,7 +1,7 @@
 // Unit tests for the course-page T Level reader.
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { aLevelRequirement, gradeIn, pageText, readTLevels, tLevelPassages } from './tlevel.ts';
+import { aLevelAlongside, aLevelRequirement, gradeIn, pageText, readTLevels, tLevelPassages } from './tlevel.ts';
 
 const read = (html: string) => readTLevels(tLevelPassages(pageText(html)));
 
@@ -161,11 +161,38 @@ test('A level Maths named in the T Level requirement, even after a full stop', (
   assert.equal(read('T Level: M and A2 Maths and Physics at grade BB'), 'accepted_with_maths');
 });
 
-test('not when A level Maths is only an alternative, a choice, or GCSE', () => {
+test('not when A level Maths is only an alternative or GCSE; a choice of A levels still counts', () => {
   const read = (q: string) => readTLevels([q]).status;
   assert.equal(read('T level Merit T Level must be completed in a Maths subject or A Level Maths will be required.'), 'accepted');
   assert.equal(read('T level Merit T Level must be completed in a subject that includes Maths components. Alternatively, A Level Maths would be required.'), 'accepted');
-  assert.equal(read('T Level Engineering is considered. Merit overall with B in core component and B in A level Maths or Physics.'), 'accepted');
+  assert.equal(read('T Level Engineering is considered. Merit overall with B in core component and B in A level Maths or Physics.'), 'accepted_with_maths');
   assert.equal(read('T Levels Merit GCSE grade C/4 in Maths.'), 'accepted');
   assert.equal(read('T Level: Merit. BTEC: DMM. A levels: BBB including A level Maths.'), 'accepted');
+});
+
+test('the A level asked for alongside the T Level, in words', () => {
+  const a = aLevelAlongside;
+  assert.equal(a('T Level in Design and Development is considered. Merit overall with B in core component and B in A level Maths.'), 'A level Maths at B');
+  assert.equal(a('T levels Merit Overall in Digital Support Services. Alongside A level Maths grade C.'), 'A level Maths at C');
+  assert.equal(a('T Level: M and A2 Maths and Physics at grade BB'), 'A levels in Maths and Physics at BB');
+  assert.equal(a('T Level Merit Digital Production, Design & Development - plus AS Level Maths at B'), 'AS level Maths at B');
+  assert.equal(a('T Levels: Grade C in A-Level Mathematics or Physics, in addition to your T Level qualification.'), 'A level Maths or Physics at C');
+  assert.equal(a('T levels Only accepted alongside A level Mathematics grade A or A level Computer Science grade A GCSE requirements'), 'A level Maths or Computer Science at A');
+  assert.equal(a('T-level will be considered provided a grade B is obtained in A Level Maths and grade C in A Level Physics.'), 'A levels: Maths at B, Physics at C');
+  assert.equal(a('T levels Only accepted alongside A levels in relevant subjects GCSE requirements'), 'A levels in relevant subjects');
+  assert.equal(a("T levels You'll need T level Science or ICT, alongside A level Mathematics. T Level Science or ICT is accepted"), 'A level Maths');
+  assert.equal(a('T levels For subjects accepted please contact admissions. Please note, A-level Maths will be needed alongside T levels.'), 'A level Maths');
+  assert.equal(a('T Levels Distinction and grade B in A Level Maths, Physics or Computer Science Mixed Qualifications'), 'A level Maths, Physics or Computer Science at B');
+});
+
+test('no A level when it is an alternative, a comparison, a list or GCSE', () => {
+  const a = aLevelAlongside;
+  assert.equal(a('T level Pass T Level must be completed in a Maths subject or A Level Maths will be required.'), null);
+  assert.equal(a('T level Merit T Level must include Maths components. Alternatively, A Level Maths would be required.'), null);
+  assert.equal(a('T-levels A T-level is the equivalent to three A-levels.'), null);
+  assert.equal(a('T Levels, A Levels and BTEC'), null);
+  assert.equal(a('T Levels, BTEC Diplomas. A Levels must include Mathematics or Physics.'), null);
+  assert.equal(a('T Level - P Applicants with a level 5 qualification such as HND can be considered.'), null);
+  assert.equal(a('T Levels Merit GCSE grade C/4 in Maths.'), null);
+  assert.equal(a('We accept T-levels, with these grades equivalent to our standard A-level requirements: AAA - Distinction'), null);
 });

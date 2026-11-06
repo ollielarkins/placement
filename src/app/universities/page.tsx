@@ -18,6 +18,7 @@ import {
   TLEVEL_STATUS,
   UNI_PAGE_SIZE,
   parseUniSearch,
+  tlevelTagText,
   rankStats,
   rankText,
   searchUniCourses,
@@ -30,7 +31,7 @@ import { lookupOutcode } from '@/lib/outcode';
 export const maxDuration = 30;
 export const metadata: Metadata = {
   title: 'Universities',
-  description: 'UK engineering degrees and whether they accept a T Level: outright, with A level Maths, case by case or not at all.',
+  description: 'UK engineering degrees and whether they accept a T Level: outright, with an A level (and which grade), case by case or not at all.',
 };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -88,7 +89,7 @@ export default async function UniversitiesPage({ searchParams }: Props) {
                 title: r.title,
                 subtitle: [r.university, r.qualification].filter(Boolean).join(' · '),
                 badge: {
-                  text: `${TLEVEL_STATUS[r.tlevel_status].label}${r.tlevel_requirement && (r.tlevel_status === 'accepted' || r.tlevel_status === 'accepted_with_maths') ? ` · ${r.tlevel_requirement}` : ''}`,
+                  text: tlevelTagText(r.tlevel_status, r.tlevel_requirement, r.tlevel_alevel, true),
                   tone: r.tlevel_status === 'accepted' ? 'volt' : r.tlevel_status === 'accepted_with_maths' ? 'cobalt' : r.tlevel_status === 'not_accepted' ? 'ink' : 'plain',
                 },
                 stats: rankStats(r),
@@ -221,7 +222,7 @@ function CourseCard({ r, showDistance, sort }: { r: CourseRow; showDistance: boo
         </ul>
       ) : null}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-        <TLevelBadge status={r.tlevel_status} requirement={r.tlevel_requirement} />
+        <TLevelBadge status={r.tlevel_status} requirement={r.tlevel_requirement} alevel={r.tlevel_alevel} />
         {r.tlevel_scope === 'university' && r.tlevel_status !== 'unknown' ? (
           <span className="text-xs text-slate-600" title="The course page doesn't say; this is the university's general T Level statement.">
             university-wide statement

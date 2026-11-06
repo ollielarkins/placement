@@ -71,7 +71,7 @@ export default async function HomePage() {
             the usual next step after a T Level.
           </Path>
           <Path href="/universities" tag="After" title="Universities" cta="Check degrees" accent="bg-ink text-volt">
-            Which degrees take your T Level: on its own, with A level Maths, case by case or not at all. We quote the
+            Which degrees take your T Level: on its own, with an A level such as Maths, case by case or not at all. We quote the
             course page so you can check it yourself.
           </Path>
         </div>
