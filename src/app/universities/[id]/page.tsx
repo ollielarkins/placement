@@ -4,7 +4,8 @@ import { notFound } from 'next/navigation';
 import { SaveCourseButton } from '@/components/SaveButton';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { ukDate } from '@/lib/format';
-import { CUG_NAME, LEAGUE_TABLES, NATIONS, SUBJECT_GROUPS, TLEVEL_STATUS, rankText, uniCourseDetail, type CourseDetail } from '@/lib/opportunities';
+import { CUG_NAME, LEAGUE_TABLES, NATIONS, SUBJECT_GROUPS, TLEVEL_STATUS, rankStats, rankText, uniCourseDetail, type CourseDetail } from '@/lib/opportunities';
+import { RankStats } from '@/components/RankStats';
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -17,6 +18,14 @@ export default async function CoursePage({ params }: Props) {
   const c = await uniCourseDetail((await params).id);
   if (!c) notFound();
   const st = TLEVEL_STATUS[c.tlevel_status];
+  const g = c.cug;
+  const stats = rankStats({
+    cug_subject_label: g?.subject_label ?? null, cug_subject_position: g?.subject_position ?? null,
+    cug_subject_tied: g?.subject_tied ?? null, cug_subject_of: g?.subject_of ?? null,
+    cug_overall_position: g?.overall_position ?? null, cug_overall_tied: g?.overall_tied ?? null, cug_overall_of: g?.overall_of ?? null,
+    subject_label: c.subject_label, subject_rank: c.subject_rank, subject_rank_of: c.subject_rank_of, subject_rank_tied: c.subject_rank_tied,
+    overall_rank: c.university.overall_rank, overall_rank_of: c.university.overall_rank_of, overall_rank_tied: c.university.overall_rank_tied,
+  });
   const facts: [string, string][] = [
     ['Qualification', c.qualification ?? 'Not stated'],
     ['Subject area', c.subject_group in SUBJECT_GROUPS ? SUBJECT_GROUPS[c.subject_group as keyof typeof SUBJECT_GROUPS] : 'Other'],
@@ -43,6 +52,27 @@ export default async function CoursePage({ params }: Props) {
           </div>
           <SaveCourseButton courseId={c.id} />
         </div>
+        {stats.length ? (
+          <div className="mt-3 grid gap-2 border-l-8 border-volt pl-4">
+            <RankStats stats={stats} size="lg" />
+            {g && (g.subject_position || g.overall_position) ? (
+              <p className="text-xs">
+                {g.subject_url && g.subject_position ? (
+                  <a href={g.subject_url} rel="noopener noreferrer nofollow" target="_blank" className="font-semibold underline">
+                    Full {g.subject_label?.toLowerCase()} table
+                  </a>
+                ) : null}
+                {g.subject_url && g.subject_position && g.overall_position ? ' · ' : ''}
+                {g.overall_position ? (
+                  <a href={g.overall_url} rel="noopener noreferrer nofollow" target="_blank" className="font-semibold underline">
+                    Full university table
+                  </a>
+                ) : null}
+                {' '}· Positions from the {CUG_NAME} {g.edition}, used with permission.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </header>
 
       <section aria-labelledby="tl" className="grid gap-3 border-2 border-ink bg-white p-4 shadow-hard">
@@ -162,48 +192,12 @@ function Rankings({ c }: { c: CourseDetail }) {
     ['Median graduate salary', c.median_salary != null ? `£${c.median_salary.toLocaleString('en-GB')}` : null],
   ];
   const shown = measures.filter(([, v]) => v);
-  const g = c.cug;
-  const gSubj = g ? rankText(g.subject_position, g.subject_of, g.subject_tied) : null;
-  const gUni = g ? rankText(g.overall_position, g.overall_of, g.overall_tied) : null;
+  const gSubj = c.cug ? rankText(c.cug.subject_position, c.cug.subject_of, c.cug.subject_tied) : null;
   return (
     <section aria-labelledby="rank" className="grid gap-3">
       <h2 id="rank" className="text-xl font-bold">
         How it ranks
       </h2>
-      {gSubj || gUni ? (
-        <div className="grid gap-2 border-2 border-ink bg-volt p-4 shadow-hard">
-          <h3 className="text-sm font-bold uppercase tracking-wide">
-            {CUG_NAME} {g!.edition}
-          </h3>
-          <dl className="grid gap-3 sm:grid-cols-2">
-            {gSubj && g!.subject_label ? (
-              <div className="grid content-start gap-1">
-                <dt className="text-xs font-semibold uppercase tracking-wide">{g!.subject_label}</dt>
-                <dd className="display text-2xl">{gSubj}</dd>
-                {g!.subject_url ? (
-                  <dd className="text-xs">
-                    <a href={g!.subject_url} rel="noopener noreferrer nofollow" target="_blank" className="font-semibold underline">
-                      See the full subject table
-                    </a>
-                  </dd>
-                ) : null}
-              </div>
-            ) : null}
-            {gUni ? (
-              <div className="grid content-start gap-1">
-                <dt className="text-xs font-semibold uppercase tracking-wide">{u.name}, overall</dt>
-                <dd className="display text-2xl">{gUni}</dd>
-                <dd className="text-xs">
-                  <a href={g!.overall_url} rel="noopener noreferrer nofollow" target="_blank" className="font-semibold underline">
-                    See the full university table
-                  </a>
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-          <p className="text-xs">Positions from the {CUG_NAME} {g!.edition}, used with permission.</p>
-        </div>
-      ) : null}
       <h3 className="text-sm font-bold uppercase tracking-wide text-slate-600">Our open-data rank</h3>
       <dl className="grid gap-3 sm:grid-cols-3">
         <div className="grid content-start gap-1 border-2 border-ink bg-white p-4">

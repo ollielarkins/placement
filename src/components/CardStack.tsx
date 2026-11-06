@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { clearDislikes, react, unreact, type ItemType } from '@/app/account/liked/actions';
+import { RankStats } from '@/components/RankStats';
+import type { RankStat } from '@/lib/rank';
 
 export interface CardItem {
   id: string;
@@ -13,6 +15,8 @@ export interface CardItem {
   chips?: string[];
   /** A highlighted chip (score, T Level status). */
   badge?: { text: string; tone: 'volt' | 'cobalt' | 'ink' | 'plain' } | null;
+  /** Rankings shown as big numbers. */
+  stats?: RankStat[];
   /** A sentence worth reading (reasons, T Level quote). */
   note?: string | null;
   href: string;
@@ -213,6 +217,11 @@ export function CardStack({
           ) : null}
           <h2 className="display text-2xl sm:text-3xl">{current.title}</h2>
           {current.subtitle ? <p className="text-lg font-semibold">{current.subtitle}</p> : null}
+          {current.stats?.length ? (
+            <div className="border-l-8 border-volt py-1 pl-4">
+              <RankStats stats={current.stats} size="lg" />
+            </div>
+          ) : null}
           {current.chips?.length ? (
             <ul className="flex flex-wrap gap-2 text-sm">
               {current.chips.map((c) => (

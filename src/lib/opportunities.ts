@@ -267,9 +267,36 @@ export type TefRating = 'Gold' | 'Silver' | 'Bronze' | 'Requires improvement';
 /** "=12th of 207" style, or null when unranked. */
 export function rankText(rank: number | null, of: number | null, tied: boolean | null): string | null {
   if (!rank || !of) return null;
-  const v = rank % 100;
-  const suffix = v >= 11 && v <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[rank % 10] ?? 'th';
-  return `${tied ? '=' : ''}${rank}${suffix} of ${of}`;
+  return `${ordinal(rank, tied)} of ${of}`;
+}
+
+export { ordinal, type RankStat } from './rank';
+import { ordinal, type RankStat } from './rank';
+
+type RankFields = Pick<
+  CourseRow,
+  | 'cug_subject_label' | 'cug_subject_position' | 'cug_subject_tied' | 'cug_subject_of'
+  | 'cug_overall_position' | 'cug_overall_tied' | 'cug_overall_of'
+  | 'subject_label' | 'subject_rank' | 'subject_rank_of' | 'subject_rank_tied'
+  | 'overall_rank' | 'overall_rank_of' | 'overall_rank_tied'
+>;
+
+export function rankStats(r: RankFields): RankStat[] {
+  const cug = 'Complete University Guide 2027';
+  const ours = 'Our open-data rank';
+  const subj: RankStat | null =
+    r.cug_subject_position && r.cug_subject_of && r.cug_subject_label
+      ? { position: r.cug_subject_position, of: r.cug_subject_of, tied: !!r.cug_subject_tied, label: r.cug_subject_label, source: cug }
+      : r.subject_rank && r.subject_rank_of && r.subject_label
+        ? { position: r.subject_rank, of: r.subject_rank_of, tied: !!r.subject_rank_tied, label: r.subject_label, source: ours }
+        : null;
+  const uni: RankStat | null =
+    r.cug_overall_position && r.cug_overall_of
+      ? { position: r.cug_overall_position, of: r.cug_overall_of, tied: !!r.cug_overall_tied, label: 'University overall', source: cug }
+      : r.overall_rank && r.overall_rank_of
+        ? { position: r.overall_rank, of: r.overall_rank_of, tied: !!r.overall_rank_tied, label: 'University overall', source: ours }
+        : null;
+  return [subj, uni].filter((x): x is RankStat => !!x);
 }
 
 /** Published UK league tables we link to (their tables are copyright, so we don't copy them). */

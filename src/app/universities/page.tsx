@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { PendingButton } from '@/components/PendingButton';
 import { CardStack, ViewToggle } from '@/components/CardStack';
 import { SaveCourseButton } from '@/components/SaveButton';
+import { RankStats } from '@/components/RankStats';
 import { TLevelBadge } from '@/components/TLevelBadge';
 import { miles } from '@/lib/format';
 import {
@@ -15,6 +16,7 @@ import {
   TLEVEL_STATUS,
   UNI_PAGE_SIZE,
   parseUniSearch,
+  rankStats,
   rankText,
   searchUniCourses,
   uniHref,
@@ -84,9 +86,9 @@ export default async function UniversitiesPage({ searchParams }: Props) {
                   text: `${TLEVEL_STATUS[r.tlevel_status].label}${r.tlevel_requirement && (r.tlevel_status === 'accepted' || r.tlevel_status === 'accepted_with_maths') ? ` · ${r.tlevel_requirement}` : ''}`,
                   tone: r.tlevel_status === 'accepted' ? 'volt' : r.tlevel_status === 'accepted_with_maths' ? 'cobalt' : r.tlevel_status === 'not_accepted' ? 'ink' : 'plain',
                 },
+                stats: rankStats(r),
                 chips: [
-                  ...cugLines(r),
-                  ...rankLines(r),
+                  ...secondaryRanks(r),
                   r.russell_group ? 'Russell Group' : null,
                   r.foundation_year ? 'Foundation year available' : null,
                   r.sandwich_year ? 'Placement year available' : null,
@@ -128,30 +130,22 @@ export default async function UniversitiesPage({ searchParams }: Props) {
   );
 }
 
-/** Complete University Guide positions (published with permission), credited in the chip. */
-function cugLines(r: CourseRow): string[] {
-  const subj = rankText(r.cug_subject_position, r.cug_subject_of, r.cug_subject_tied);
-  const uni = rankText(r.cug_overall_position, r.cug_overall_of, r.cug_overall_tied);
-  return [
-    subj && r.cug_subject_label ? `CUG 2027 · ${r.cug_subject_label}: ${subj}` : null,
-    uni ? `CUG 2027 · Overall: ${uni}` : null,
-  ].filter((x): x is string => !!x);
-}
-
-/** Our open-data ranks and the TEF rating. */
-function rankLines(r: CourseRow): string[] {
+/** Smaller extras beside the big numbers: our own ranks (when the big numbers are CUG's) and the TEF rating. */
+function secondaryRanks(r: CourseRow): string[] {
+  const shown = new Set(rankStats(r).map((x) => x.source));
+  const ours = !shown.has('Our open-data rank');
   const uni = rankText(r.overall_rank, r.overall_rank_of, r.overall_rank_tied);
   const subj = rankText(r.subject_rank, r.subject_rank_of, r.subject_rank_tied);
   return [
-    subj && r.subject_label ? `Our rank · ${r.subject_label}: ${subj}` : null,
-    uni ? `Our rank · University: ${uni}` : null,
+    ours && subj && r.subject_label ? `Our rank: ${subj} for ${r.subject_label.toLowerCase()}` : null,
+    ours && uni ? `Our rank: ${uni} overall` : null,
     r.tef_overall ? `TEF ${r.tef_overall}` : null,
   ].filter((x): x is string => !!x);
 }
 
 function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }) {
-  const cug = cugLines(r);
-  const ranks = rankLines(r);
+  const stats = rankStats(r);
+  const ranks = secondaryRanks(r);
   const extras = [r.foundation_year ? 'Foundation year available' : null, r.sandwich_year ? 'Placement year available' : null].filter(Boolean);
   return (
     <li className="border-2 border-ink bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-hard">
@@ -171,13 +165,13 @@ function CourseCard({ r, showDistance }: { r: CourseRow; showDistance: boolean }
         </div>
         <SaveCourseButton courseId={r.id} compact />
       </div>
-      {cug.length || ranks.length ? (
-        <ul aria-label="Rankings" className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
-          {cug.map((x) => (
-            <li key={x} className="border-2 border-ink bg-volt px-2 py-0.5">
-              {x}
-            </li>
-          ))}
+      {stats.length ? (
+        <div className="mt-3 border-l-8 border-volt pl-3">
+          <RankStats stats={stats} />
+        </div>
+      ) : null}
+      {ranks.length ? (
+        <ul aria-label="More rankings" className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
           {ranks.map((x) => (
             <li key={x} className="border-2 border-cobalt px-2 py-0.5 text-cobalt">
               {x}
