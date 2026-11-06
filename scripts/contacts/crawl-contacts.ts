@@ -254,7 +254,7 @@ async function main() {
     },
   });
   const limit = values.limit ? Number.parseInt(values.limit, 10) : Infinity;
-  const concurrency = Math.max(1, Math.min(32, Number.parseInt(values.concurrency!, 10)));
+  const concurrency = Math.max(1, Math.min(128, Number.parseInt(values.concurrency!, 10)));
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
   const fetcher = new PoliteFetcher(process.env.CRAWLER_CONTACT ?? '');
 
